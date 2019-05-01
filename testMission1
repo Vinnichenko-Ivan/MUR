@@ -1,0 +1,161 @@
+#include <murAPI.hpp>
+ 
+ //вывод сообщений
+int DEBUG = 1;
+
+//установка глубины в см
+
+
+//коэфф.пропорциональности для поддержки глубины
+int kpdepth = 15;
+
+//таймер работы программы
+Timer t;
+
+float getdepth()
+{
+    float dep=mur.getInputAOne(); //датчик глубины на первом i2c
+    //float dep=mur.getInputBOne(); //датчик глубины на втором i2c
+    return dep;
+}
+void setdepth(float depthToSet){
+    float depth = getdepth();
+    if(depth>depthToSet)
+    {mur.setPortC(-100);}
+    else
+        mur.setPortC(100);
+  //  if (DEBUG) 
+        //вывод сообщения про err глубины каждые 5 сек
+       // if (t.elapsed()/5000%2) std::cout << "err depth " << depthToSet - depth << std::endl;
+}
+
+
+ 
+int main()
+{
+    //запуск таймера
+    t.start();
+    
+    //флаг выхода на заданную глубину
+    bool idown = false;
+    
+    //номер текущей миссии
+    int mission = 0;
+    
+    mur.setPorts(0, 0, 0, 0);
+    
+    //бесконечный цикл
+    while(true){
+        //получить курс
+        float yaw = mur.getYaw();
+        
+        //получить глубину
+        //float depth = mur.getInputAOne(); //датчик глубины на первом i2c
+
+         
+        //поддержка рабочей глубины
+        //setdepth(depth);
+
+
+        switch (mission) {
+            
+            //выполнение миссии №0
+            case 0: {
+                //погрузиться на глубину 50 см
+                while ((! idown) && (getdepth() < 80)){
+                    float u=((int)(yaw-mur.getYaw()+540)%360-180)*7;
+                    mur.setPortA(-u);
+                    mur.setPortB(u);
+                    setdepth(82);
+                    if ((! idown) && getdepth() > 80) idown = true;
+                }
+                std::cout << "mission " << mission << std::endl;
+                mission++;
+                mur.setPorts(0, 0, 0, 0);
+
+                break;
+            }
+            
+            case 1: {
+            //проплыть прямо 15 сек
+               
+                //запуск таймера
+                t.start();
+                while(t.elapsed()<15000){
+                   
+                    setdepth(50); //установка/удержание глубины на 50 см
+                    
+                    //удержание курса yaw
+                    float u =((int)(yaw-mur.getYaw()+540)%360-180)*3; //рассчитать управляющее воздействие на движители
+                    mur.setPortA(-90-u);
+                    mur.setPortB(-90+u);
+                }
+                
+                mur.setPorts(0, 0, 0, 0);
+                std::cout << "mission " << mission << std::endl;
+                mission++;
+                break;
+                
+            }
+            case 2: {
+                //миссия: поиск прямоугольника на дне бассейна + изменения курса yaw на угол поворота прямоугольника
+                //запуск таймера
+                t.start();
+                bool rectangleDetected = false;
+                while(t.elapsed()<15000){
+                   
+                    setdepth(50);
+                    
+                    float u =((int)(yaw-mur.getYaw()+540)%360-180)*3;
+                    mur.setPortA(-50-u);
+                    mur.setPortB(-50+u);
+
+                     cv::Mat image = mur.getCameraOneFrame();
+                     //cv::Mat image = mur.getCameraTwoFrame();
+                     //детектирование объекта средствами MUR
+                     mur.addDetectorToList(Object::RECTANGLE, 0);
+                     for (const auto &obj : mur.getDetectedObjectsList(0)) {
+                         if (obj.r < 15) {//отбросить мелкие объекты
+                            continue;
+                         }
+                           if (obj.r > 15) 
+                            if (obj.type == Object::RECTANGLE) {
+                                if (DEBUG) std::cout << t.elapsed() << " Rectangle obj.x:" << obj.x << "  obj.y:" << obj.y << "  obj.angle:" << obj.angle << std::endl;
+                                //cv::Mat image = mur.getCameraTwoFrame();
+                                cv::circle(image, cv::Point2i(obj.x, obj.y), obj.r/4, cv::Scalar(255, 0, 100), 8);
+                                //cv::drawContours(image, obj, 0 , cv::Scalar(0, 0, 255), 2);
+                                cv::imshow("Image", image);
+                                cv::waitKey(10);
+                                //корректируем курс yaw
+                                if (!rectangleDetected) {
+                                    yaw = yaw + obj.angle;
+                                    rectangleDetected = true;}
+                            }
+                        }
+                 }
+
+
+                mur.setPorts(0, 0, 0, 0);
+                std::cout << "mission " << mission << std::endl;
+                mission++;
+                break;
+                }
+
+            case 3: {
+                
+               //всплыть на глубину 20 см
+                while(20. < getdepth()){
+                     setdepth(20);
+               }
+                
+                mur.setPortC(0);
+                mur.setPorts(0, 0, 0, 0);
+                std::cout << "mission " << mission << std::endl;
+                mission++;
+                break;
+                }
+            
+        } //end switch
+    } //end while
+    return 0;
+}
