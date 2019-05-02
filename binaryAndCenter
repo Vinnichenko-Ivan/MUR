@@ -183,7 +183,6 @@ int main()
    
    cvDestroyAllWindows();
    cvReleaseCapture(&capt);
-   cvReleaseImage(&img);
    cvReleaseImage(&frame);
         return 0;
 }
