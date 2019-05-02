@@ -91,9 +91,7 @@ int main()
         bin[i] = atoi(line.c_str());
         origBin[i] = bin[i];
     }
-    IplImage* img = cvLoadImage("HSV.jpg");
     IplImage* frame;
-    cvNamedWindow("main",1);
     cvNamedWindow("cam",1);
     //CvCapture* capt = cvCreateCameraCapture(1);
     CvCapture* capt = cvCreateCameraCapture(0);
@@ -102,7 +100,6 @@ int main()
     CvSeq* max;
     CvSeq* sec;
     CvMemStorage* mem = cvCreateMemStorage(0);
-   cvShowImage("main",img);
    hsv = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 3 );
    h_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
    s_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
