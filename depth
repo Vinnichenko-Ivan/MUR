@@ -13,11 +13,11 @@ int filtre[3];
 Timer t;
 float getdepth()
 {
-    filtre[2]=filtre[1];
+    filtre[2]=filtre[1]; 
     filtre[1]=filtre[0];
     filtre[0]=mur.getInputAOne(); //датчик глубины на первом i2c
     //float dep=mur.getInputBOne(); //датчик глубины на втором i2c
-    return (filtre[3]+filtre[1]+filtre[2])/3;
+    return (filtre[0]+filtre[1]+filtre[2])/3;
 }
 void setdepth(float depthToSet){
     float depth = getdepth();
