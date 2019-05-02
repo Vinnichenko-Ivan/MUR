@@ -1,0 +1,58 @@
+#include <murAPI.hpp>
+ int DEBUG = 1;
+ float absoluteYaw= mur.getYaw();
+//установка глубины в см
+float errorOld=0,error=0,errorIntegral=0,errorBalance,errorBalanceOld,ErrorBalanceIntegral,uOld;
+//коэфф.пропорциональности для поддержки глубины
+float kpdepth = 12.5;
+float kddepth = 1;
+float kidepth =  0;
+float kpbalance = 4;
+float kdbalance = 0.0333;
+float kibalance = 0;
+float u;
+float filtre[3];
+//таймер работы программы
+Timer t;
+float getdepth()
+{
+    filtre[2]=filtre[1]; 
+    filtre[1]=filtre[0];
+    filtre[0]=mur.getInputAOne(); //датчик глубины на первом i2c
+    //float dep=mur.getInputBOne(); //датчик глубины на втором i2c
+    return (filtre[0]+filtre[1]+filtre[2])/3;
+}
+void setdepth(float depthToSet){
+    float depth = getdepth();
+    error=depthToSet-depth;
+    errorIntegral+=error;
+    mur.setPortC((depthToSet-depth)*kpdepth+(error-errorOld)*kddepth+errorIntegral*kidepth);
+    errorOld=error;
+    if(errorIntegral>3000){
+        errorIntegral=3000;}
+    if(errorIntegral>-3000){
+        errorIntegral=-3000;}
+        //  if (DEBUG) 
+        //вывод сообщения про err глубины каждые 5 сек
+        
+    if (t.elapsed()/5000%2) std::cout << "err depth " << depthToSet - depth << std::endl;
+        
+}
+void balance(float yaw ){
+    uOld=u;
+    u =((int)(yaw-mur.getYaw()+540)%360-180)*kpbalance;
+mur.setPortA(-u-(u-uOld)*kdbalance);
+mur.setPortB(u+(u-uOld)*kdbalance);
+    }
+int main()
+{
+    
+    
+    while(true){
+        setdepth(100);
+        //mur.setPortC(-100);//+ down
+        
+        balance(10);
+        }
+    return 0;
+}
