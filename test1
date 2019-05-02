@@ -1,0 +1,236 @@
+#include <murAPI.hpp>
+#include<iostream>
+using namespace std;
+int mission=1;
+bool idown=0;
+bool red_ball=0;
+float yow=0;
+bool c=0;
+bool sqr=0;
+bool id=0;
+bool trian=0;
+float size=0;
+Timer t;
+float getDeep()
+{
+    return mur.getInputAOne();
+}
+void setDeep(float deep)
+{
+    float deepT=getDeep();
+    if(deepT<deep)
+        mur.setPortC(90);
+    else
+        mur.setPortC(-90);
+}
+
+void stop()
+{
+  mur.setPorts(0,0,0,0);  
+}
+void proporcional(float prop_k,float yaw)
+{
+    float degree=mur.getYaw();
+    float u=((int)degree+540-(int)yaw)%360-180;
+    mur.setPortA(-90-u*prop_k);
+    mur.setPortB(-90+u*prop_k);
+}
+void proporcional_plus(float prop_k,float yaw)
+{
+    float degree=mur.getYaw();
+    float u=((int)degree+540-(int)yaw)%360-180;
+    mur.setPortA(-50-u*prop_k);
+    mur.setPortB(-50+u*prop_k);
+}
+
+int main()
+{
+    float ang=0;
+    IplImage* img;
+    float yaw2=mur.getYaw();
+
+    int h=320/2;
+    int v=240/2;
+    bool u=0;
+    
+    float yaw=mur.getYaw();
+    while(true)
+    {
+      if(mission==1)
+    {
+            mur.addDetectorToList(Object::RECTANGLE, 0);
+
+        bool b=0;
+        float angle=0;
+        for (const auto &obj:mur.getDetectedObjectsList(0)) {
+            if(obj.type == Object::RECTANGLE)
+            {
+                
+                angle=obj.angle;
+              
+                 if(angle<1&&angle>-1)
+                {
+                            ang=mur.getYaw();
+             
+                mission++;
+                }
+            }
+        }
+       
+        yow=yaw-angle;
+        proporcional(3,yow);
+    }
+
+    if(mission==2)
+    {
+            mur.addDetectorToList(Object::CIRCLE,0);
+
+     if(!c)
+        {
+        
+    mur.setPortA(0);
+    mur.setPortB(0);
+        while(getDeep()>30.0&&!idown)
+    {
+        setDeep(30);
+        cout<<getDeep()<<endl;
+        if(getDeep()<30.0&&!idown)
+        {
+            mur.setPorts(0,0,0,0);
+            idown=true;
+           
+        }
+    }
+                c=1;
+
+            }
+              idown=0;
+
+      for (const auto &obj:mur.getDetectedObjectsList(0)) {
+          if(obj.type == Object::CIRCLE)
+                red_ball=true;
+         
+          
+      }  
+    if(!red_ball)
+      proporcional_plus(-6,ang);
+    if(red_ball)
+    {
+        mur.setPortA(0);
+        mur.setPortB(0);
+        while(getDeep()<65&&!idown)
+    {
+        setDeep(65);
+     //   cout<<getDeep()<<endl;
+        if(getDeep()>65&&!idown)
+        {
+            mur.setPorts(0,0,0,0);
+            idown=true;
+            mission++; 
+            break;
+        }
+    }
+        idown=0;
+
+     while(getDeep()>30&&!id)
+    {
+        setDeep(30);
+       // cout<<getDeep()<<endl;
+        if(getDeep()<30.0&&!id)
+        {
+
+            mur.setPorts(0,0,0,0);
+            id=true;
+           break;
+        }
+    }
+                       mission=3;
+
+    } 
+
+    }
+    if(mission==3)
+    {
+      mur.addDetectorToList(Object::RECTANGLE, 0);
+
+        float angle=0;
+         for (const auto &obj:mur.getDetectedObjectsList(0)) {
+            if(obj.type == Object::RECTANGLE)
+            {
+                angle=obj.angle;
+              sqr=1;
+                 if(angle<5&&angle>-5)
+                {
+                    size=obj.size;
+                 mur.setPorts(0,0,0,0);
+                while(getDeep()<70&&!idown)
+                {
+                setDeep(70);
+           //     cout<<getDeep()<<endl;
+                if(getDeep()>70&&!idown)
+                {
+                mur.setPorts(0,0,0,0);
+                 idown=true;
+                mission++; 
+                break;
+        }
+    }
+                ang=mur.getYaw();
+                mission=4;
+                }
+            }
+        }
+       if(!sqr)
+          proporcional(-3,ang);
+        if(sqr){
+        proporcional(-9,yaw2-angle);
+        }
+    }
+    if(mission==4)
+    {
+        
+              mur.addDetectorToList(Object::TRIANGLE, 0);
+               for (const auto &obj:mur.getDetectedObjectsList(0)) {
+            if(obj.type == Object::RECTANGLE&&(v-obj.y<30&&v-obj.y>-30)&&(h-obj.x<30&&h-obj.x>-30)&&obj.size>size*2)
+                trian=1;
+     
+        }
+        if(!trian)
+                  proporcional(-3,ang);
+        if(trian){
+             mur.setPorts(0,0,0,0);
+                while(getDeep()<180&&!idown)
+                {
+                setDeep(180);
+                cout<<getDeep()<<endl;
+                if(getDeep()>180&&!idown)
+                {
+                mur.setPorts(0,0,0,0);
+                 idown=true;
+                mission++; 
+                break;
+        }
+    }
+    idown=0;
+            while(getDeep()>5)
+    {
+        setDeep(5);
+      //  cout<<getDeep()<<endl;
+        if(getDeep()<5)
+        {
+            mur.setPorts(0,0,0,0);
+            idown=true;
+            mission++; 
+            break;
+        }
+    }
+    idown=0;
+    return 0;
+        }
+            
+
+    }
+}
+mur.setPorts(0,0,0,0);
+    return 0;
+}
