@@ -44,7 +44,7 @@ void setdepth(float depthToSet){
  
 int main()
 {
-    static cv::Mat image; // для кадра камеры
+    static cv::Mat image, image2; // для кадра камеры
     
     //запуск таймера
     t.start();
@@ -133,6 +133,7 @@ int main()
                     //image = mur.getCameraTwoFrame(); //захватить кадр с камеры 2
 
                     cv::imshow("Cam", image);//показать кадр в окне
+                    cv::waitKey(10);
                     
                      //детектирование объекта средствами MUR
                      mur.addDetectorToList(Object::RECTANGLE, 0); //cam down - 0, cam forward - 1 
@@ -142,8 +143,10 @@ int main()
                                 if (!setyaw) { 
                                     yaw = obj.angle;
                                     std::cout << t.elapsed() << " Rectangle obj.x:" << obj.x << "  obj.y:" << obj.y << "  obj.r:" << obj.r << "  obj.angle:" << obj.angle  << "  obj.size:" << obj.size << std::endl;
-                                    cv::circle(image, cv::Point2i(obj.x, obj.y), obj.r, cv::Scalar(255, 0, 100), 8);
-                                    cv::imshow("Image", image);
+                                    image2 = image.clone();
+                                    cv::circle(image2, cv::Point2i(obj.x, obj.y), obj.r, cv::Scalar(255, 0, 100), 8);
+                                    cv::imshow("Image", image2);
+                                    cv::waitKey(10);
                                     setyaw = 1;
                                 }
                             }
@@ -185,5 +188,7 @@ int main()
             
         } //end switch
     } //end while
+    cvDestroyAllWindows();
+    
     return 0;
 }
