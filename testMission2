@@ -136,7 +136,7 @@ int main()
                      mur.addDetectorToList(Object::RECTANGLE, 0); //cam down - 0, cam forward - 1 
                      for (const auto &obj : mur.getDetectedObjectsList(0)) {
                            if (obj.r > 15) // мелкие не рассматриваем
-                             if (obj.type == Object::RECTANGLE) {
+                             if (obj.type == Object::RECTANGLE) { //
                                 if (!setyaw) { 
                                     yaw = obj.angle;
                                     std::cout << t.elapsed() << " Rectangle obj.x:" << obj.x << "  obj.y:" << obj.y << "  obj.r:" << obj.r << "  obj.angle:" << obj.angle  << "  obj.size:" << obj.size << std::endl;
@@ -148,10 +148,11 @@ int main()
                         }
                 }
                 
+                //поворот на месте на новый курс по полоске
                 while( abs(yaw -mur.getYaw()) > 5) {    
                     setdepth(50); //поддержание глубины 50
 
-                    //поворот на месте на новый курс по полоске
+                    //подрулирование левым и правым моторами на месте
                     float u =((int)(yaw-mur.getYaw()+540)%360-180)*3;
                     mur.setPortA(-u);
                     mur.setPortB(+u);
