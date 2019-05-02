@@ -1,0 +1,191 @@
+////////////////////Поиск центра + бинаризация/////////////////////
+#include <murAPI.hpp>
+#include<iostream>
+#include<string.h>
+#include<fstream>
+using namespace std;
+ofstream write("D:/khams/bin.txt");
+ifstream read("D:/khams/bin.txt");
+IplImage* image = 0;
+IplImage* dst = 0;
+IplImage* hsv = 0;
+IplImage* h_plane = 0;
+IplImage* s_plane = 0;
+IplImage* v_plane = 0;
+IplImage* h_range = 0;
+IplImage* s_range = 0;
+IplImage* v_range = 0;
+IplImage* hsv_and = 0;
+IplImage* imgo;
+IplImage* dilate;
+int step = 0;
+int radi=1;
+int origBin[6];
+IplConvKernel* kern=cvCreateStructuringElementEx(radi*2+1,radi*2+1,radi,radi,CV_SHAPE_ELLIPSE);
+int bin[6];
+/*int Hmin = 0;
+int Hmax = 256;
+
+int Smin = 0;
+int Smax = 256;
+
+int Vmin = 0;
+int Vmax = 256;
+*/
+int HSVmax = 256;
+void er_del(int b)
+{
+	
+        if(b==0)
+	cvErode(hsv_and,hsv_and,kern,4);
+	if(b==1)
+	cvDilate(hsv_and,hsv_and,kern,4);
+        //cvReleaseImage(&imgo);
+	
+        
+}
+void myTrackbarHmin(int pos) {
+        bin[0] = pos;
+     //   cvInRangeS(h_plane, cvScalar(Hmin), cvScalar(Hmax), h_range);
+}
+
+void myTrackbarHmax(int pos) {
+        bin[1] = pos;
+     //   cvInRangeS(h_plane, cvScalar(Hmin), cvScalar(Hmax), h_range);
+}
+
+void myTrackbarSmin(int pos) {
+        bin[2] = pos;
+     //   cvInRangeS(s_plane, cvScalar(Smin), cvScalar(Smax), s_range);
+}
+
+void myTrackbarSmax(int pos) {
+        bin[3] = pos;
+     //   cvInRangeS(s_plane, cvScalar(Smin), cvScalar(Smax), s_range);
+}
+
+void myTrackbarVmin(int pos) {
+        bin[4] = pos;
+     //   cvInRangeS(v_plane, cvScalar(Vmin), cvScalar(Vmax), v_range);
+}
+
+void myTrackbarVmax(int pos) {
+        bin[5] = pos;
+      //  cvInRangeS(v_plane, cvScalar(Vmin), cvScalar(Vmax), v_range);
+}
+
+int main()
+{
+    char ch;
+    CvPoint2D32f center;
+    double perim = 0,per;
+    bool iFind = 0,startNew = 0;
+    IplImage* find;
+    IplImage* out;
+    string line;
+    float radius;
+    for(int i = 0;i<6;i++)
+    {
+        getline(read,line);
+        bin[i] = atoi(line.c_str());
+        origBin[i] = bin[i];
+    }
+    IplImage* img = cvLoadImage("HSV.jpg");
+    IplImage* frame;
+    cvNamedWindow("main",1);
+    cvNamedWindow("cam",1);
+    //CvCapture* capt = cvCreateCameraCapture(1);
+    CvCapture* capt = cvCreateCameraCapture(0);
+    frame = cvQueryFrame(capt);
+    CvSeq* seq;
+    CvSeq* max;
+    CvSeq* sec;
+    CvMemStorage* mem = cvCreateMemStorage(0);
+   cvShowImage("main",img);
+   hsv = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 3 );
+   h_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+   s_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+   v_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+   h_range = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+   s_range = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+   v_range = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+   hsv_and = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+   cvNamedWindow("original",CV_WINDOW_AUTOSIZE);
+   cvCreateTrackbar("Hmin", "cam", 0, HSVmax, myTrackbarHmin);
+   cvCreateTrackbar("Hmax", "cam", 0, HSVmax, myTrackbarHmax);
+   cvCreateTrackbar("Szmin", "cam", 0, HSVmax, myTrackbarSmin);
+   cvCreateTrackbar("Smax", "cam", 0, HSVmax, myTrackbarSmax);
+   cvCreateTrackbar("Vmin", "cam", 0, HSVmax, myTrackbarVmin);
+   cvCreateTrackbar("Vmax", "cam", 0, HSVmax, myTrackbarVmax);
+    
+   while(1)
+   {
+       //Старые, сохраненые параметры бинаризации
+       if(!startNew)
+        {
+            cvInRangeS(h_plane, cvScalar(origBin[0]), cvScalar(origBin[1]), h_range);
+           cvInRangeS(s_plane, cvScalar(origBin[2]), cvScalar(origBin[3]), s_range);
+            cvInRangeS(v_plane, cvScalar(origBin[4]), cvScalar(origBin[5]), v_range);
+        }
+      //Новые парамметры, задаются ползунками
+      //Для перехода в этот режим нажмите 'n'         
+       else
+       {
+            cvInRangeS(h_plane, cvScalar(bin[0]), cvScalar(bin[1]), h_range);
+            cvInRangeS(s_plane, cvScalar(bin[2]), cvScalar(bin[3]), s_range);
+            cvInRangeS(v_plane, cvScalar(bin[4]), cvScalar(bin[5]), v_range);
+        }
+       frame = cvQueryFrame(capt);
+       cvShowImage("original",frame);
+       cvCvtColor( frame, hsv, CV_BGR2HSV ); 
+       cvSplit( hsv, h_plane, s_plane, v_plane, 0 );
+       cvAnd(h_range, s_range, hsv_and);
+       cvAnd(hsv_and, v_range, hsv_and);
+       //find = cvCloneImage(hsv_and);
+       er_del(1);
+       /////////////////////Режим поиска центра для корректоной работы экран должен быть не пустым!!!!!!!!!!!!!!!!!
+       ////Для входа в этот режим нажмите 's'  
+       if(iFind)
+       {
+           // out = cvCreateImage(cvGetSize(find),8,1);
+            //cvCvtColor(find,out,CV_RGB2GRAY);
+           
+            //er_del(1);
+            cvFindContours(hsv_and,mem,&seq,sizeof(CvContour),CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE,cvPoint(0,0));
+            perim = 0;
+            if(seq!=0)
+            for(sec = seq;sec!=0;sec = sec->h_next)
+            {
+                per = cvContourPerimeter(sec);
+                if(per>perim)
+                {
+                    perim = per;
+                    max = sec;
+                }   
+        }
+        
+        //radius=0;
+        cvMinEnclosingCircle(max,  &center, &radius);
+        cout<<"X: "<<center.x<<endl<<"Y: "<<center.y<<endl<<endl;
+        cvCircle(frame,  cvPointFrom32f(center), 10, cvScalar(0,0,255), 5, 8);
+      }
+           
+       cvShowImage("cam",hsv_and);
+        cvShowImage("original",frame);
+       ch = cvWaitKey(33);
+       if(ch == 110)
+           startNew = 1;
+       if(ch == 115)
+           iFind = 1;
+       if(ch == 27) 
+           break;
+   }     
+   for(int i = 0;i<6;i++)
+       write<<bin[i]<<endl;
+   
+   cvDestroyAllWindows();
+   cvReleaseCapture(&capt);
+   cvReleaseImage(&img);
+   cvReleaseImage(&frame);
+        return 0;
+}
