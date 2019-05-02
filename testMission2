@@ -44,6 +44,8 @@ void setdepth(float depthToSet){
  
 int main()
 {
+    static cv::Mat image; // для кадра камеры
+    
     //запуск таймера
     t.start();
     
@@ -127,8 +129,8 @@ int main()
                     
                     int x=0,y=0;
                     //initCamera(0); //при работе с симулятором камеру инициализировать не нужно
-                    cv::Mat image = mur.getCameraOneFrame(); //захватить кадр с камеры 1
-                    //cv::Mat image = mur.getCameraTwoFrame(); //захватить кадр с камеры 2
+                    image = mur.getCameraOneFrame(); //захватить кадр с камеры 1
+                    //image = mur.getCameraTwoFrame(); //захватить кадр с камеры 2
 
                     cv::imshow("Cam", image);//показать кадр в окне
                     
