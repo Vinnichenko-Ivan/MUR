@@ -21,18 +21,27 @@ int kpdepth = 15;
 //таймер работы программы
 Timer t;
 
+/*
+ Получить данные с датчика глубины на первом порту i2c MUR'а
+*/
 float getdepth()
 {
     float dep=mur.getInputAOne();
     //float dep=mur.getInputBOne();
     return dep;
 }
+
+/*
+ Поддерживать заданную глубину см по датчику глубины на первом порту i2c MUR'а
+ TODO: при вращении двигателя C робота "закручивает" относительно курса, требуется использовать
+  функцию курсовой стабилизации yaw по гироскопу
+*/
 void setdepth(float depthToSet){
     float depth = getdepth();
     if(depth>depthToSet)
     {mur.setPortC(-100);}
     else
-        mur.setPortC(100);
+        mur.setPortC(100); //двигатель C для всплытия/погружения
   //  if (DEBUG) 
         //вывод сообщения про err глубины каждые 5 сек
        // if (t.elapsed()/5000%2) std::cout << "err depth " << depthToSet - depth << std::endl;
