@@ -4,6 +4,7 @@
 #include<string.h>
 #include<fstream>
 using namespace std;
+//Тут прописывается путь до файла куда сохраняются и записываются параметры бинаризации
 ofstream write("D:/khams/bin.txt");
 ifstream read("D:/khams/bin.txt");
 IplImage* image = 0;
