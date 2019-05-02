@@ -44,6 +44,12 @@ void balance(float yaw ){
 mur.setPortA(-u-(u-uOld)*kdbalance);
 mur.setPortB(u+(u-uOld)*kdbalance);
     }
+    void GO(float yaw ){
+    uOld=u;
+    u =((int)(yaw-mur.getYaw()+540)%360-180)*kpbalance;
+mur.setPortA(-90-u-(u-uOld)*kdbalance);
+mur.setPortB(-90+u+(u-uOld)*kdbalance);
+    }
 int main()
 {
     
@@ -52,7 +58,7 @@ int main()
         setdepth(100);
         //mur.setPortC(-100);//+ down
         
-        balance(10);
+        GO(10);
         }
     return 0;
 }
