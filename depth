@@ -15,7 +15,7 @@ float getdepth()
 {
     filtre[2]=filtre[1];
     filtre[1]=filtre[0];
-    float filtre[0]=mur.getInputAOne(); //датчик глубины на первом i2c
+    filtre[0]=mur.getInputAOne(); //датчик глубины на первом i2c
     //float dep=mur.getInputBOne(); //датчик глубины на втором i2c
     return (filtre[3]+filtre[1]+filtre[2])/3;
 }
