@@ -1,0 +1,214 @@
+////////////////////Поиск центра + бинаризация/////////////////////
+#include <murAPI.hpp>
+#include <cmath>
+using namespace std;
+IplImage* frame;
+IplImage* onlyBinary;
+IplImage* hsv_and = 0;
+int targetx,targety;
+int counter = 0;
+float max_r = 0;
+bool control = 0;
+bool findCircle = 0;
+//Включение режима отладки 
+int DEBUG = 1;
+char ch; 
+float height,width;
+cv::Mat image2;
+IplImage* bufer;
+IplImage ipltemp;
+CvSeq* approx = 0;
+CvSeq* results = 0;
+IplConvKernel* kern;
+//Координаты X,Y крайней левой нижней точки
+int angleToTarget = 0;
+void er_del(int radi)
+{
+        kern = cvCreateStructuringElementEx(radi*2+1,radi*2+1,radi,radi,CV_SHAPE_ELLIPSE);
+}
+//Функция поиска координат вершин прямоугольника, ПЕРЕД НЕЙ ДОЛЖНА БЫТЬ ВЫПОЛНЕНА ФУНКЦИЯ БИНАРИЗАЦИИ, выдает 0/1 в зависимости от нахождения
+bool searchRectangle()
+{
+    findCircle = 0;
+    CvMemStorage* mem = cvCreateMemStorage(0);
+    CvSeq* seq = 0;
+    CvSeq* maxContour = 0;
+    CvSeq* secondContour = 0;
+    cvSmooth(onlyBinary,onlyBinary, CV_GAUSSIAN, 5, 5 );
+    er_del(1);
+    cvErode(onlyBinary,onlyBinary,kern,4);
+    double perim = 0,per;
+    cvFindContours(onlyBinary,mem,&seq,sizeof(CvContour),CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE,cvPoint(0,0));
+    if(seq!=0)
+    {
+        for(CvSeq* sec = seq;sec!=0;sec = sec->h_next)
+        {
+            per = cvContourPerimeter(sec);
+            if(per>perim)
+            {
+                maxContour = sec;
+                perim = per;
+            }   
+        }
+    float radius;
+    CvPoint2D32f center;
+    cvMinEnclosingCircle(maxContour, &center, &radius);
+    targetx = center.x;
+    targety = center.y;
+    approx = cvApproxPoly(maxContour,sizeof(CvContour),mem, CV_POLY_APPROX_DP, 10, 0);
+    if(approx->total == 4)
+    {
+        findCircle = 1;
+        int rectPointX[2];
+        int rectPointY[2];
+        int distancePointX = 0;
+        int distancePointY = 400;
+        //     CvPoint point1 = cvPoint(cvRound(pf[0]),cvRound(pf[1]));
+      //  cout<<"ANGLE:   "<<pf->x<<endl; 
+        for(int i = 0;i < approx->total;i++)
+        {
+             CvPoint* p = (CvPoint*)cvGetSeqElem ( approx, i );
+             //CvPoint pt = cvPoint( cvRound(  ), cvRound( p[1] ) );   
+             cvCircle(frame,  cvPoint(p->x,p->y), 10, cvScalar(i*55,i*55,i*25), 5, 8);
+
+             
+        }
+       // angleToTarget = (57 * atan((rectPointX[0]-rectPointX[1])/(rectPointY[0] - rectPointY[1])));
+      //  cout<<angleToTarget<<endl; 
+    }
+}  
+    if(DEBUG == 1)
+    {
+        cvShowImage("orig",frame);
+        cvShowImage("main",onlyBinary);
+        ch = cvWaitKey(33);
+        if(ch == 27)
+        {
+            cvDestroyAllWindows();
+            cvReleaseImage(&frame);
+            return 0;
+        }
+        }
+        else
+            ch = cvWaitKey(33);    
+        cvReleaseMemStorage(&mem);
+        onlyBinary = 0;
+    return findCircle;
+       
+}
+//Функция поиска координат центра круга, ПЕРЕД НЕЙ ДОЛЖНА БЫТЬ ВЫПОЛНЕНА ФУНКЦИЯ БИНАРИЗАЦИИ, выдает 0/1 в зависимости от нахождения
+bool searchCircle()
+{
+    findCircle = 0;
+    CvMemStorage* mem = cvCreateMemStorage(0);
+    CvSeq* seq = 0;
+    CvSeq* maxContour = 0;
+    CvSeq* secondContour = 0;
+     er_del(1);
+    cvErode(hsv_and,hsv_and,kern,1);
+    cvSmooth(hsv_and,hsv_and, CV_GAUSSIAN, 5, 5 );
+    if(DEBUG == 1)
+     results = cvHoughCircles(hsv_and,mem,CV_HOUGH_GRADIENT,5,hsv_and->width/5); 
+     if(results!=0)
+     {
+         max_r = 0;
+         CvPoint maxPoint;
+                for( int i = 0; i < results->total; i++ ) {
+                    float* p = (float*) cvGetSeqElem( results, i );
+                    CvPoint pt = cvPoint( cvRound( p[0] ), cvRound( p[1] ) );
+                    if(p[2]>max_r)
+                    {
+                        max_r = cvRound(p[2]);
+                        maxPoint = pt;
+                    }
+                             
+                  } 
+         cvCircle(frame,maxPoint, max_r,cvScalar(0,255,0), 5, 8);
+        cout<<endl<<endl<<max_r;
+        if(max_r == 0.0)
+             control = 1;
+        else
+        {
+          control = 0;
+          findCircle = 1;
+        }
+        targetx = maxPoint.x;
+        targety = maxPoint.y;
+        cvCircle(frame, maxPoint,max_r, cvScalar(0,255,0), 5, 8);
+               
+    } 
+    if(DEBUG == 1)
+        {
+        cvShowImage("main",hsv_and);
+        cvShowImage("orig",frame);
+        ch = cvWaitKey(33);
+        if(ch == 27)
+        {
+            cvDestroyAllWindows();
+            cvReleaseImage(&frame);
+            return 0;
+        }
+        }
+        else
+            ch = cvWaitKey(33);    
+          cvReleaseMemStorage(&mem);
+      //    cvReleaseImage(&onlyBinary);
+    return findCircle;
+}
+
+//Функции бинаризации, первым аргументом идет номер камеры 0 - нижняя , 1 - фронтальная
+void binary(bool camNum,int hsv1,int hsv2,int hsv3,int hsv4,int hsv5,int hsv6)
+{
+     if(counter == 0)
+       {
+            if(DEBUG ==1)
+            {
+            cvNamedWindow("main",1);
+            cvNamedWindow("orig",1);
+            }
+            counter++;
+       }
+    if(camNum)
+       image2 = mur.getCameraTwoFrame();
+    else
+       image2 = mur.getCameraOneFrame();
+    ipltemp = image2;
+    frame = &ipltemp;
+    height = frame->height;
+    width = frame->width;
+    hsv_and = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+    IplImage* h_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+    IplImage* s_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+    IplImage* v_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+    cvCvtColor( frame,frame, CV_BGR2HSV); 
+    cvSplit( frame, h_plane, s_plane, v_plane, 0 );
+    cvInRangeS(h_plane, cvScalar(hsv1), cvScalar(hsv2), h_plane);
+    cvInRangeS(s_plane, cvScalar(hsv3), cvScalar(hsv4), s_plane);
+    cvInRangeS(v_plane, cvScalar(hsv5), cvScalar(hsv6), v_plane);
+    cvAnd(h_plane, s_plane, hsv_and);
+    cvAnd(hsv_and, v_plane, hsv_and);
+    onlyBinary = cvCloneImage(hsv_and);
+    //cvWaitKey(33);
+    cvReleaseImage(&h_plane);
+    cvReleaseImage(&s_plane);
+    cvReleaseImage(&v_plane);
+}
+
+int main()
+{
+    while(1)
+   {
+        //Распознавание оранжевой полоски
+        binary(0,2,51,60,255,87,255);
+        int i  =   searchRectangle();
+        //Поиск красного шара
+      //  binary(1,0,8,137,255,121,255);
+    //    int i = searchCircle();    
+  }
+        
+        
+       
+   
+ 
+   return 0;
+}
