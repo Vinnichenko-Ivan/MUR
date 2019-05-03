@@ -90,9 +90,9 @@ int main()
    char ch; 
    bool findCircle = 0;
    //Получаем размеры кадра для создания изображений
-   cv::Mat image1 = mur.getCameraTwoFrame();
+   cv::Mat image1;
    IplImage ipltemp;
-   image1 = mur.getCameraOneFrame();
+   image1 = mur.getCameraTwoFrame();
    ipltemp = image1;
    frame = &ipltemp;
    int width = frame->width;
