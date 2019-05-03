@@ -2,10 +2,14 @@
 #include <murAPI.hpp>
 using namespace std;
 IplImage* frame;
+IplImage* onlyBinary;
 IplImage* hsv_and = 0;
 int targetx,targety;
 int counter = 0;
-int radi=1;
+float max_r = 0;
+int radi=2;
+bool control = 1;
+bool findCircle = 0;
 //Включение режима отладки 
 int DEBUG = 1;
 char ch; 
@@ -13,26 +17,73 @@ char ch;
 cv::Mat image1;
 cv::Mat image2;
 IplImage ipltemp;
+CvSeq* results = 0;
 IplConvKernel* kern = cvCreateStructuringElementEx(radi*2+1,radi*2+1,radi,radi,CV_SHAPE_ELLIPSE);
 //Функция поиска центра, ПЕРЕД НЕЙ ДОЛЖНА БЫТБ ВЫПОЛНЕНА ФУНКЦИЯ БИНАРИЗАЦИИ И РАЗМЫТИЯ
-bool find_circleCent()
+bool find_circleCent(bool cern)
 {
+    findCircle = 0;
     CvMemStorage* mem = cvCreateMemStorage(0);
     CvSeq* seq = 0;
     CvSeq* maxContour = 0;
-    cvFindContours(hsv_and,mem,&seq,sizeof(CvContour),CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE,cvPoint(0,0));
-    double perim = 0,per;
-    if(seq!=0)
+    CvSeq* secondContour = 0;
+     cvSmooth(hsv_and,hsv_and, CV_GAUSSIAN, 5, 5 );
+    if(DEBUG == 1)
+        cvShowImage("main",hsv_and);
+     results = cvHoughCircles(hsv_and,mem,CV_HOUGH_GRADIENT,5,hsv_and->width/5); 
+     if(results!=0)
+     {
+         max_r = 0;
+         CvPoint maxPoint;
+                for( int i = 0; i < results->total; i++ ) {
+                    float* p = (float*) cvGetSeqElem( results, i );
+                    CvPoint pt = cvPoint( cvRound( p[0] ), cvRound( p[1] ) );
+                    if(p[2]>max_r)
+                    {
+                        max_r = cvRound(p[2]);
+                        maxPoint = pt;
+                    }
+                    //CvPoint pt = cvPoint( cvRound( p[0] ), cvRound( p[1] ) );
+                //cvCircle(frame, pt, cvRound( p[2] ), CV_RGB(0xff,0,0) );  
+              // 
+                    
+                  } 
+         cvCircle(frame,maxPoint, max_r,cvScalar(0,255,0), 5, 8);
+        //cout<<endl<<endl<<"CIRCLE!!!!!!!";
+        if(max_r == 0.0)
+             control = 1;
+        else
+        {
+          control = 0;
+            if(cern == 0)
+                findCircle = 1;
+        }
+        targetx = maxPoint.x;
+        targety = maxPoint.y;
+        cvCircle(frame, maxPoint,max_r, cvScalar(0,255,0), 5, 8);
+     
+       
+    
+        
+    } 
+    if(control == 1)
     {
+     cvFindContours(hsv_and,mem,&seq,sizeof(CvContour),CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE,cvPoint(0,0));
+    
+    double perim = 0,per;
+        if(seq!=0)
+        {
             for(CvSeq* sec = seq;sec!=0;sec = sec->h_next)
             {
                 per = cvContourPerimeter(sec);
                 if(per>perim)
                 {
-                    perim = per;
                     maxContour = sec;
+                    perim = per;
                 }   
             }
+            
+ 
         CvPoint2D32f center;
         float radius;
         cvMinEnclosingCircle(maxContour,  &center, &radius);
@@ -40,12 +91,37 @@ bool find_circleCent()
         targetx = center.x;
         targety = center.y;
         cvCircle(frame,  cvPointFrom32f(center), radius, cvScalar(0,255,0), 5, 8);
-        if(DEBUG == 1)
+        kern = cvCreateStructuringElementEx(2*2+1,2*2+1,2,2,CV_SHAPE_ELLIPSE);
+        cvErode(onlyBinary,onlyBinary,kern,2);
+        cvFindContours(onlyBinary,mem,&seq,sizeof(CvContour),CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE,cvPoint(0,0));
+        
+    
+          if(seq!=0)
+        {
+            for(CvSeq* sec = seq;sec!=0;sec = sec->h_next)
+            {
+                per = cvContourPerimeter(sec);
+                if(per>perim)
+                {
+                    maxContour = sec;
+                    perim = per;
+                }   
+         }
+     }
+    if(maxContour->total == 4)
+        if(cern == 1)
+            findCircle = 1;   
+       
+//    }
+
+}
+else  
+    findCircle = 0;
+}
+ if(DEBUG == 1)
         {
         //cout<<"Target X:   "<<targetx<<"Target Y:   "<<targety<<"Find contours: "<<endl;
-        cvShowImage("main",hsv_and);
-        // cvShowImage("main2",hsv_and);
-        cvShowImage("orig",frame);
+         cvShowImage("orig",frame);
         ch = cvWaitKey(33);
         if(ch == 27)
         {
@@ -58,65 +134,43 @@ bool find_circleCent()
         }
         else
             ch = cvWaitKey(33);    
-        cvClearSeq(seq);
-        cvClearSeq(maxContour);  
-        cvReleaseMemStorage(&mem);
-
-        return 1;
-    }
-    else
-    {
-         if(DEBUG == 1)
-        {
-        //cout<<"Target X:   "<<targetX<<"Target Y:   "<<targetY<<endl;
-        cvShowImage("main",hsv_and);
-        // cvShowImage("main2",hsv_and);
-        cvShowImage("orig",frame);
-        ch = cvWaitKey(33);
-        if(ch == 27)
-        {
-            //cvReleaseImage(&img);
-            cvDestroyAllWindows();
-            cvReleaseImage(&frame);
-            return 0;
-        }
-        
-        }
-        else
-            ch = cvWaitKey(33); 
-       // cvClearSeq(seq);
-      //  cvClearSeq(maxContour); 
-        cvReleaseMemStorage(&mem);
-        return 0;
-    }    
+          cvReleaseMemStorage(&mem);
+          cvReleaseImage(&onlyBinary);
 }
 //Функция размтия, ВЫПОЛНЯЕТСЯ ПОСЛЕ ФУНКЦИИ БИНАРИЗАЦИИ
 void er_del(int b)
 {
-	
+  
         if(b==0)
             cvErode(hsv_and,hsv_and,kern,4);
-	if(b==1)
+        if(b==1)
             cvDilate(hsv_and,hsv_and,kern,4);
         //cvReleaseImage(&imgo);
-	
+  
         
 }
 //Функции бинаризации
-void binary(int hsv1,int hsv2,int hsv3,int hsv4,int hsv5,int hsv6)
+void binary(bool camNum,int hsv1,int hsv2,int hsv3,int hsv4,int hsv5,int hsv6)
 {
+    if(camNum)
        image2 = mur.getCameraTwoFrame();
+    else
+       image2 = mur.getCameraOneFrame();
        ipltemp = image2;
        frame = &ipltemp;
+       hsv_and = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
        if(counter == 0)
        {
-           
+           if(camNum)
             image1 = mur.getCameraTwoFrame();
+           else
+             image1 = mur.getCameraOneFrame();   
+           
             ipltemp = image1;
             frame = &ipltemp;
             int width = frame->width;
             int height = frame->height;
-            hsv_and = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+           
             if(DEBUG ==1)
             {
             cvNamedWindow("main",1);
@@ -124,21 +178,21 @@ void binary(int hsv1,int hsv2,int hsv3,int hsv4,int hsv5,int hsv6)
             }
             counter++;
        }
-       IplImage* hsv = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 3 );
        IplImage* h_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
        IplImage* s_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
        IplImage* v_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
-       cvCvtColor( frame,frame, CV_BGR2HSV ); 
-       cvSplit( hsv, h_plane, s_plane, v_plane, 0 );
+       cvCvtColor( frame,frame, CV_BGR2HSV); 
+       cvSplit( frame, h_plane, s_plane, v_plane, 0 );
        cvInRangeS(h_plane, cvScalar(hsv1), cvScalar(hsv2), h_plane);
        cvInRangeS(s_plane, cvScalar(hsv3), cvScalar(hsv4), s_plane);
        cvInRangeS(v_plane, cvScalar(hsv5), cvScalar(hsv6), v_plane);
        cvAnd(h_plane, s_plane, hsv_and);
        cvAnd(hsv_and, v_plane, hsv_and);
+       onlyBinary = cvCloneImage(hsv_and);
        cvReleaseImage(&h_plane);
        cvReleaseImage(&s_plane);
        cvReleaseImage(&v_plane);
-       cvReleaseImage(&hsv);
+       //cvReleaseImage(&hsv);
 }
 ////Для того что бы алгоритм искал оранжевую полоску введите в функцию binary() следующие значения
 /////
@@ -150,32 +204,16 @@ int main()
    
    while(1)
    {
-                //Получаем кадр
-                
+             
                 //Бинаризуем
-                binary(0,255,195,255,176,255);
+                binary(1,0,2,61,255,105,184);
                 //Размываем
                 er_del(1);
                 //Ищем центр
-               int i =   find_circleCent();
-                //Наработка под поиск круга
-                //При отладке выводятся координаты центра и нашел робот контур или нет
-                                //Наработка под поиск круга
-                /*CvSeq* results = cvHoughCircles( 
-                hsv_and, 
-                mem, 
-                CV_HOUGH_GRADIENT, 
-                2, 
-                hsv_and->width/5 
-                ); 
-                // пробегаемся по кругам и рисуем их на оригинальном изображении
-                results!=0;
-                for( int i = 0; i < results->total; i++ ) {
-                float* p = (float*) cvGetSeqElem( results, i );
-                CvPoint pt = cvPoint( cvRound( p[0] ), cvRound( p[1] ) );
-                cvCircle( hsv, pt, cvRound( p[2] ), CV_RGB(0xff,0,0) );
-                }*/
-            
+                int i  =   find_circleCent(0);
+                if(DEBUG == 1)
+                    cout<<i<<endl;
+                   
         }
         
         
