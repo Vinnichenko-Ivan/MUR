@@ -1,3 +1,8 @@
+/*
+Тестовая программа для MUR
+Autor: 
+*/
+
 #include <murAPI.hpp>
 #include<iostream>
 using namespace std;
