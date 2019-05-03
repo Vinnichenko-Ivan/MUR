@@ -1,0 +1,146 @@
+////////////////////For compilation use/////////////////////
+//g++ HSVfind.cpp -o output `pkg-config --cflags --libs opencv`
+/////yelow/////0,255,195,255,176,255//////////////
+////red////////
+#include <murAPI.hpp>
+#include<cmath>
+#include<iostream>
+using namespace std;
+IplImage* image = 0;
+IplImage* dst = 0;
+IplImage* hsv = 0;
+IplImage* h_plane = 0;
+IplImage* s_plane = 0;
+IplImage* v_plane = 0;
+IplImage* h_range = 0;
+IplImage* s_range = 0;
+IplImage* v_range = 0;
+IplImage* hsv_and = 0;
+
+int Hmin = 0;
+int Hmax = 256;
+
+int Smin = 0;
+int Smax = 256;
+
+int Vmin = 0;
+int Vmax = 256;
+
+int HSVmax = 256;
+
+void myTrackbarHmin(int pos) {
+        Hmin = pos;
+}
+
+void myTrackbarHmax(int pos) {
+        Hmax = pos;
+}
+
+void myTrackbarSmin(int pos) {
+        Smin = pos;
+       // cvInRangeS(s_plane, cvScalar(Smin), cvScalar(Smax), s_range);
+}
+
+void myTrackbarSmax(int pos) {
+        Smax = pos;
+        //cvInRangeS(s_plane, cvScalar(Smin), cvScalar(Smax), s_range);
+}
+
+void myTrackbarVmin(int pos) {
+        Vmin = pos;
+        //cvInRangeS(v_plane, cvScalar(Vmin), cvScalar(Vmax), v_range);
+}
+
+void myTrackbarVmax(int pos) {
+        Vmax = pos;
+//        cvInRangeS(v_plane, cvScalar(Vmin), cvScalar(Vmax), v_range);
+}
+
+int main(int argc, char* argv[])
+{
+    // mur.initCamera(0);
+    IplImage* frame;
+     //   image = cvLoadImage("kley.jpg");
+       // CvCapture* capt = cvCreateCameraCapture(1);
+        //IplImage* shabl = cvCreateImage(cvSize(800,800),8,3);
+        //cvResize(image,shabl);
+        //image = shabl;
+        ////frame = cvQueryFrame(capt);
+        cv::Mat image1 = mur.getCameraTwoFrame();
+        IplImage ipltemp;
+     ipltemp = image1;
+                frame = &ipltemp;
+                      hsv = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 3 );
+
+        h_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+        s_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+        v_plane = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+        h_range = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+        s_range = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+        v_range = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+        hsv_and = cvCreateImage( cvGetSize(frame), IPL_DEPTH_8U, 1 );
+               
+       
+     
+
+        cvNamedWindow("original",CV_WINDOW_AUTOSIZE);
+        cvNamedWindow("hsv_and",CV_WINDOW_AUTOSIZE);
+
+        cvCreateTrackbar("Hmin", "hsv_and", &Hmin, HSVmax, myTrackbarHmin);
+        cvCreateTrackbar("Hmax", "hsv_and", &Hmax, HSVmax, myTrackbarHmax);
+        cvCreateTrackbar("Smin", "hsv_and", &Smin, HSVmax, myTrackbarSmin);
+        cvCreateTrackbar("Smax", "hsv_and", &Smax, HSVmax, myTrackbarSmax);
+        cvCreateTrackbar("Vmin", "hsv_and", &Vmin, HSVmax, myTrackbarVmin);
+        cvCreateTrackbar("Vmax", "hsv_and", &Vmax, HSVmax, myTrackbarVmax);
+
+      /*  if(image->width <1920/4 && image->height<1080/2){
+                cvMoveWindow("hsv and", 0, image->height+30);
+                cvMoveWindow("original", 0, 0);
+                cvMoveWindow("H", image->width+10, 0);
+                cvMoveWindow("S", (image->width+10)*2, 0);
+                cvMoveWindow("V", (image->width+10)*3, 0);
+                cvMoveWindow("H range", image->width+10, image->height+30);
+                cvMoveWindow("S range", (image->width+10)*2, image->height+30);
+                cvMoveWindow("V range", (image->width+10)*3, image->height+30);
+        }*/
+
+        while(true){
+            
+                  image1 = mur.getCameraTwoFrame();
+               //Старые, сохраненые параметры бинаризации
+                ipltemp = image1;
+                frame = &ipltemp;
+        
+                 cvCvtColor( frame, hsv, CV_BGR2HSV ); 
+            
+                cvSplit( hsv, h_plane, s_plane, v_plane, 0 );
+                cvInRangeS(h_plane, cvScalar(Hmin), cvScalar(Hmax), h_range);
+                cvInRangeS(s_plane, cvScalar(Smin), cvScalar(Smax), s_range);
+                cvInRangeS(v_plane, cvScalar(Vmin), cvScalar(Vmax), v_range);
+                cvAnd(h_range, s_range, hsv_and);
+                cvAnd(hsv_and, v_range, hsv_and);
+              
+            
+               cvShowImage( "hsv_and", hsv_and );
+              cvShowImage( "original", frame );
+           // cv::imshow("img",image1);
+                char c = cvWaitKey(33);
+                if(c == 115)
+                        cvSaveImage("HSV.jpg",hsv_and);
+                if (c == 27) { 
+                        break;
+                }
+        }
+    
+        cvReleaseImage(&image);
+        cvReleaseImage(&hsv);
+        cvReleaseImage(&h_plane);
+        cvReleaseImage(&s_plane);
+        cvReleaseImage(&v_plane);
+        cvReleaseImage(&h_range);
+        cvReleaseImage(&s_range);
+        cvReleaseImage(&v_range);
+        cvReleaseImage(&hsv_and);
+        cvDestroyAllWindows();
+        return 0;
+}
