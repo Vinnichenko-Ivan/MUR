@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<scene id="1">
+	<attribute name="Name" value="" />
+	<attribute name="Time Scale" value="1" />
+	<attribute name="Smoothing Constant" value="50" />
+	<attribute name="Snap Threshold" value="5" />
+	<attribute name="Elapsed Time" value="0" />
+	<attribute name="Next Replicated Node ID" value="35" />
+	<attribute name="Next Replicated Component ID" value="61" />
+	<attribute name="Next Local Node ID" value="16777244" />
+	<attribute name="Next Local Component ID" value="16777552" />
+	<attribute name="Variables" />
+	<attribute name="Variable Names" value="" />
+	<component type="Octree" id="1" />
+	<component type="DebugRenderer" id="2" />
+	<component type="Zone" id="5">
+		<attribute name="Bounding Box Min" value="-3000 -3000 -3000" />
+		<attribute name="Bounding Box Max" value="3000 3000 3000" />
+		<attribute name="Ambient Color" value="0.5 0.5 0.5 1" />
+		<attribute name="Fog Color" value="0.4 0.5 0.8 1" />
+	</component>
+	<component type="PhysicsWorld" id="14">
+		<attribute name="Gravity" value="0 0.3 0" />
+	</component>
+	<node id="33">
+		<attribute name="Is Enabled" value="true" />
+		<attribute name="Name" value="p2" />
+		<attribute name="Tags" />
+		<attribute name="Position" value="-8.94148 -6.0406 19.6887" />
+		<attribute name="Rotation" value="0.707107 0.707107 0 0" />
+		<attribute name="Scale" value="8 8 8" />
+		<attribute name="Variables" />
+		<component type="StaticModel" id="57">
+			<attribute name="Model" value="Model;Models/p2.mdl" />
+			<attribute name="Material" value="Material;Materials/Blue.xml;Materials/Blue.xml;Materials/Orange.xml;Materials/Orange.xml;Materials/OxidRed.xml;Materials/Yellow.xml;Materials/01 - Default.xml;Materials/Water.xml" />
+		</component>
+		<component type="RigidBody" id="59">
+			<attribute name="Physics Rotation" value="0.707107 0.707107 0 0" />
+			<attribute name="Physics Position" value="-8.94148 -6.0406 19.6887" />
+		</component>
+		<component type="CollisionShape" id="60">
+			<attribute name="Shape Type" value="TriangleMesh" />
+			<attribute name="Model" value="Model;Models/p2.mdl" />
+		</component>
+	</node>
+	<node id="34">
+		<attribute name="Is Enabled" value="true" />
+		<attribute name="Name" value="Cylinder" />
+		<attribute name="Tags" />
+		<attribute name="Position" value="0.645792 -6.17031 0.187949" />
+		<attribute name="Rotation" value="1 0 0 0" />
+		<attribute name="Scale" value="3 0.01 3" />
+		<attribute name="Variables" />
+		<component type="StaticModel" id="58">
+			<attribute name="Model" value="Model;Models/Cylinder.mdl" />
+			<attribute name="Material" value="Material;" />
+		</component>
+	</node>
+</scene>
