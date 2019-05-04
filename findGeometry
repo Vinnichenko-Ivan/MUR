@@ -14,14 +14,7 @@ float kdbalance = 0.0333;
 float kibalance = 0;
 float u;
 float filtre[3];
-
-
-
-
-
 Timer t;
-
-
 IplImage* frame;
 IplImage* onlyBinary;
 IplImage* hsv_and = 0;
@@ -74,20 +67,59 @@ bool searchRectangle()
     cvMinEnclosingCircle(maxContour, &center, &radius);
     targetx = center.x;
     targety = center.y;
+    cvCircle(frame,cvPoint(center.x,center.y),radius,cvScalar(0,255,0), 5, 8);
     approx = cvApproxPoly(maxContour,sizeof(CvContour),mem, CV_POLY_APPROX_DP, 10, 0);
+   
     if(approx->total == 4)
     {
         findCircle = 1;
-        int rectPointX[2];
-        int rectPointY[2];
-        
-        int maxDist = 0;
-       
-        //     CvPoint point1 = cvPoint(cvRound(pf[0]),cvRound(pf[1]));
-      //  cout<<"ANGLE:   "<<pf->x<<endl; 
-      // angleToTarget = (57 * atan((rectPointX[0]-rectPointX[1])/(rectPointY[0] - rectPointY[1])));
-      //  cout<<angleToTarget<<endl; 
-      //  cvRotatedRect ellipse2 = cvFitEllipse(approx);
+        float rectPointX[2];
+        float rectPointY[2];
+        //Отладка
+      /* int points[8];       
+        for(int i = 0,k=0;i<4;i++,k+=2)
+        {
+            
+            CvPoint* p = (CvPoint*)cvGetSeqElem ( approx, i);
+            points[k] = p->y;
+            if(k!=8)  
+            {          
+            points[k+1] = p->y;
+            points[k] = p->x; 
+        }
+            
+        } */   
+             int dist[3];
+             CvPoint* p = (CvPoint*)cvGetSeqElem ( approx, 0 );
+             CvPoint* p2 = (CvPoint*)cvGetSeqElem ( approx,1);
+             dist[0]= sqrt(((max(p->x,p2->x)-min(p->x,p2->x))*(max(p->x,p2->x)-min(p->x,p2->x))) + ((max(p->y,p2->y)-min(p->y,p2->y))*(max(p->y,p2->y)-min(p->y,p2->y))));
+             p2 = (CvPoint*)cvGetSeqElem ( approx,2);
+             dist[1]= sqrt(((max(p->x,p2->x)-min(p->x,p2->x))*(max(p->x,p2->x)-min(p->x,p2->x))) + ((max(p->y,p2->y)-min(p->y,p2->y))*(max(p->y,p2->y)-min(p->y,p2->y))));
+             p2 = (CvPoint*)cvGetSeqElem ( approx,3);
+             dist[2]= sqrt(((max(p->x,p2->x)-min(p->x,p2->x))*(max(p->x,p2->x)-min(p->x,p2->x))) + ((max(p->y,p2->y)-min(p->y,p2->y))*(max(p->y,p2->y)-min(p->y,p2->y))));
+        if((dist[0]<dist[1]&&dist[0]>dist[2])||(dist[0]>dist[1]&&dist[0]<dist[2])){
+            p2 = (CvPoint*)cvGetSeqElem ( approx,1);
+            rectPointX[1] = p2->x;
+            rectPointY[1] = p2->y;
+            }
+        if((dist[1]<dist[0]&&dist[1]>dist[2])||(dist[1]>dist[0]&&dist[1]<dist[2])){
+            p2 = (CvPoint*)cvGetSeqElem ( approx,2);
+            rectPointX[1] = p2->x;
+            rectPointY[1] = p2->y;            
+            }
+        if((dist[2]<dist[1]&&dist[2]>dist[0])||(dist[2]>dist[1]&&dist[2]<0)){
+            p2 = (CvPoint*)cvGetSeqElem ( approx,3);
+            rectPointX[1] = p2->x;
+            rectPointY[1] = p2->y;
+            }
+            rectPointX[0] = p->x;
+             rectPointY[0] = p->y;
+        cvCircle(frame,cvPoint(rectPointX[0],rectPointY[0]),10,cvScalar(0,0,255), 5, 8);
+        cvCircle(frame,cvPoint(rectPointX[1],rectPointY[1]),10,cvScalar(255,0,0), 5, 8);
+             angleToTarget = atan((rectPointX[0]-rectPointX[1])/(rectPointY[0]-rectPointY[1]))*57.29;   
+      if(DEBUG==1) 
+      cout<<"ANGLE:     "<<atan(angleToTarget)<<endl; 
+    
     }
     
 }  
