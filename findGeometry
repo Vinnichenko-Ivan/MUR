@@ -1,14 +1,34 @@
-////////////////////Поиск центра + бинаризация/////////////////////
+////////////////////Поиск центра + бинаризация + выравнивание на мяч отлаженно/////////////////////
 #include <murAPI.hpp>
 #include <cmath>
+#include <iostream>
 using namespace std;
+ float absoluteYaw= mur.getYaw();
+//установка глубины в см
+float errorOld=0,error=0,errorIntegral=0,errorBalance,errorBalanceOld,ErrorBalanceIntegral,uOld;
+//коэфф.пропорциональности для поддержки глубины
+float kpdepth = 12.5;
+float kddepth = 1;
+float kidepth =  0;
+float kpbalance = 4;
+float kdbalance = 0.0333;
+float kibalance = 0;
+float u;
+float filtre[3];
+
+
+
+
+
+Timer t;
+
+
 IplImage* frame;
 IplImage* onlyBinary;
 IplImage* hsv_and = 0;
 int targetx,targety;
 int counter = 0;
 float max_r = 0;
-bool control = 0;
 bool findCircle = 0;
 //Включение режима отладки 
 int DEBUG = 1;
@@ -61,21 +81,16 @@ bool searchRectangle()
         findCircle = 1;
         int rectPointX[2];
         int rectPointY[2];
-        int distancePointX = 0;
-        int distancePointY = 400;
+        
+        int maxDist = 0;
+       
         //     CvPoint point1 = cvPoint(cvRound(pf[0]),cvRound(pf[1]));
       //  cout<<"ANGLE:   "<<pf->x<<endl; 
-        for(int i = 0;i < approx->total;i++)
-        {
-             CvPoint* p = (CvPoint*)cvGetSeqElem ( approx, i );
-             //CvPoint pt = cvPoint( cvRound(  ), cvRound( p[1] ) );   
-             cvCircle(frame,  cvPoint(p->x,p->y), 10, cvScalar(i*55,i*55,i*25), 5, 8);
-
-             
-        }
-       // angleToTarget = (57 * atan((rectPointX[0]-rectPointX[1])/(rectPointY[0] - rectPointY[1])));
+      // angleToTarget = (57 * atan((rectPointX[0]-rectPointX[1])/(rectPointY[0] - rectPointY[1])));
       //  cout<<angleToTarget<<endl; 
+      //  cvRotatedRect ellipse2 = cvFitEllipse(approx);
     }
+    
 }  
     if(DEBUG == 1)
     {
@@ -104,10 +119,10 @@ bool searchCircle()
     CvSeq* seq = 0;
     CvSeq* maxContour = 0;
     CvSeq* secondContour = 0;
-     er_del(1);
-    cvErode(hsv_and,hsv_and,kern,1);
-    cvSmooth(hsv_and,hsv_and, CV_GAUSSIAN, 5, 5 );
-    if(DEBUG == 1)
+    er_del(2);
+    cvDilate(hsv_and,hsv_and,kern,4);
+    cvSmooth(hsv_and,hsv_and,CV_BLUR, 8, 8);
+    
      results = cvHoughCircles(hsv_and,mem,CV_HOUGH_GRADIENT,5,hsv_and->width/5); 
      if(results!=0)
      {
@@ -125,13 +140,10 @@ bool searchCircle()
                   } 
          cvCircle(frame,maxPoint, max_r,cvScalar(0,255,0), 5, 8);
         cout<<endl<<endl<<max_r;
-        if(max_r == 0.0)
-             control = 1;
-        else
-        {
-          control = 0;
-          findCircle = 1;
-        }
+       
+       if(max_r>0)
+           findCircle = 1;
+        
         targetx = maxPoint.x;
         targety = maxPoint.y;
         cvCircle(frame, maxPoint,max_r, cvScalar(0,255,0), 5, 8);
@@ -194,7 +206,9 @@ void binary(bool camNum,int hsv1,int hsv2,int hsv3,int hsv4,int hsv5,int hsv6)
     cvReleaseImage(&v_plane);
 }
 
-int main()
+
+
+/*int main()
 {
     while(1)
    {
@@ -211,4 +225,107 @@ int main()
    
  
    return 0;
+}*/
+
+float getdepth()
+{
+    filtre[2]=filtre[1]; 
+    filtre[1]=filtre[0];
+    filtre[0]=mur.getInputAOne(); //датчик глубины на первом i2c
+    //float dep=mur.getInputBOne(); //датчик глубины на втором i2c
+    return (filtre[0]+filtre[1]+filtre[2])/3;
+}
+
+void setdepth(float depthToSet){
+    float depth = getdepth();
+    error=depthToSet-depth;
+    errorIntegral+=error;
+    mur.setPortC((depthToSet-depth)*kpdepth+(error-errorOld)*kddepth+errorIntegral*kidepth);
+    errorOld=error;
+    if(errorIntegral>3000){
+        errorIntegral=3000;}
+    if(errorIntegral>-3000){
+        errorIntegral=-3000;}
+        //  if (DEBUG) 
+        //вывод сообщения про err глубины каждые 5 сек
+        
+    //if (t.elapsed()/5000%2) std::cout << "err depth " << depthToSet - depth << std::endl;
+        
+}
+
+
+void balance(float yaw ){
+    uOld=u;
+    u =((int)(yaw-mur.getYaw()+540)%360-180)*kpbalance;
+mur.setPortA(-u-(u-uOld)*kdbalance);
+mur.setPortB(u+(u-uOld)*kdbalance);
+    }
+    
+    void GO(float yaw ){
+    uOld=u;
+    
+        u =((int)(yaw-mur.getYaw()+540)%360-180)*kpbalance;
+        
+        if(u<5&&u>-5){
+mur.setPortA(-90-u-(u-uOld)*kdbalance);
+mur.setPortB(-90+u+(u-uOld)*kdbalance);
+        }
+        else{balance(yaw);}
+            }
+int main()
+{
+std::cout <<"start";
+    float yaw=0;
+float setyaw = 0; 
+  bool flag=1;
+        while(true){
+            binary(1,0,2,137,255,121,255);
+// int i = searchCircle(); 
+                //Размываем
+               // er_del(1);
+                //Ищем центр
+            int a = searchCircle();
+            
+             setdepth(100);
+          std::cout << t.elapsed() <<"NO"<<"  setyaw+  "<<setyaw<< std::endl;
+            if(a==0&&flag){  
+               
+                setyaw=setyaw+0.75;
+               if(setyaw>360){
+                   setyaw=0;
+                   }
+                    balance(setyaw);
+                }
+            else if(a==1){
+             flag=0;
+                std::cout << t.elapsed() <<" targetx "<<targetx<<" targety "<<targety<<"  setyaw+  "<<setyaw<< std::endl; 
+
+                 if(abs(targetx-150)>20){
+                    setyaw=setyaw+(targetx-150)*0.005;
+                    
+                   if(setyaw<0){
+                   setyaw=360;
+                   }
+                   if(setyaw>360){
+                   setyaw=0;
+                   } 
+                    balance(setyaw);
+                    }
+               
+                else{
+                    std::cout << t.elapsed() <<" YES"<< std::endl;
+                    setyaw=setyaw+(targetx-150)*0.001;
+                                       if(setyaw<0){
+                   setyaw=360;
+                   }
+                   if(setyaw>360){
+                   setyaw=0;
+                   } 
+                   GO(setyaw);
+                    }
+                }
+  
+            balance(setyaw);
+            }
+    return 0;
 }
