@@ -1,5 +1,4 @@
-////////////////////Поиск центра + бинаризация + выравнивание на мяч отлаженно/////////////////////
-#include <murAPI.hpp>
+////////////////////Поиск центра + бинаризация + выравнивание на мяч отлаженно/////////////////////#include <murAPI.hpp>
 #include <cmath>
 #include <iostream>
 using namespace std;
@@ -279,7 +278,7 @@ std::cout <<"start";
 float setyaw = 0; 
   bool flag=1;
         while(true){
-            binary(1,0,2,137,255,121,255);
+            binary(1,25,39,0,255,0,255);
 // int i = searchCircle(); 
                 //Размываем
                // er_del(1);
