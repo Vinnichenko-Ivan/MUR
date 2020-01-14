@@ -1,4 +1,4 @@
-﻿#include <murAPI.hpp>
+#include <murAPI.hpp>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -8,6 +8,7 @@ class Camera
 {
 	public:
 		Camera(short num);
+                void setupImageBinary(cv::Mat img);
                 void setupBinary(short num);
 		void setBinary(cv::Scalar lowThresholdArg, cv::Scalar highThresholdArg);	
                 short searchSquare(bool blur = 1, int minPerimetr = 50, int rectQuality = 40);
@@ -21,7 +22,7 @@ class Camera
 		int targetSize = -1;
 		short X_Screen = -1;
 		short Y_Sreen = -1;
-		bool debug = 1;
+		bool debug = 0;
 		double targetx, targety; 
                 double xSize, ySize;
 	private:
@@ -51,6 +52,7 @@ Camera::Camera(short num)
                 cv::namedWindow(str+"_object");
         }
 	camNum = num;
+        mur.initCamera(camNum - 1);
         if(camNum == 1)    
             frame = mur.getCameraOneFrame();
         else if(camNum == 2)
@@ -60,7 +62,6 @@ Camera::Camera(short num)
 }
 void Camera::setupBinary(short num)
 {
-    cv::namedWindow("Bin");
     int hMin = 0;
     int hMax = 0;
     int sMin = 0;
@@ -80,7 +81,7 @@ void Camera::setupBinary(short num)
             image = mur.getCameraOneFrame();
         else
             image = mur.getCameraTwoFrame();
-        cv::imshow("Image", image);
+        //cv::imshow("Image", image);
         cv::cvtColor(image, image, CV_BGR2Lab);
         cv::Scalar lower(hMin, sMin, vMin);
         cv::Scalar upper(hMax, sMax, vMax);
@@ -89,6 +90,38 @@ void Camera::setupBinary(short num)
         cv::waitKey(10);
     }
 }
+void Camera::setupImageBinary(cv::Mat img)
+{
+    int hMin = 0;
+    int hMax = 0;
+    int sMin = 0;
+    int sMax = 0;
+    int vMin = 0;
+    int vMax = 0;
+    int chMax = 255;
+    cv::Mat image;
+    image = img.clone();
+    cv::imshow("Bin", image);
+    cv::createTrackbar("hMin", "Bin", &hMin, chMax);
+    cv::createTrackbar("hMax", "Bin", &hMax, chMax);
+    cv::createTrackbar("sMin", "Bin", &sMin, chMax);
+    cv::createTrackbar("sMax", "Bin", &sMax, chMax);
+    cv::createTrackbar("vMin", "Bin", &vMin, chMax);
+    cv::createTrackbar("vMax", "Bin", &vMax, chMax);
+
+
+    while (true) {
+        cv::cvtColor(image, image, CV_BGR2Lab);
+        cv::Scalar lower(hMin, sMin, vMin);
+        cv::Scalar upper(hMax, sMax, vMax);
+        cv::inRange(image, lower, upper, image);
+        cv::imshow("Bin", image);
+        cv::waitKey(1);
+        image = img.clone();
+
+    }
+}
+
 void Camera::erode(int radi)
 {
     cv::Mat elem = cv::getStructuringElement(2,cv::Size(2*radi+1,2*radi+1),cv::Point(radi,radi));
@@ -119,7 +152,7 @@ bool Camera::searchRectangle(bool blurArg, bool mode, double minPerimetr, short 
     binary(frame);
     if(blurArg)
     	blur();
-    erode(3);
+    erode(4);
     cv::findContours(image.clone(), contours, CV_RETR_TREE,CV_CHAIN_APPROX_NONE, cvPoint(0,0));
     if(contours.size()!=0)
     {
