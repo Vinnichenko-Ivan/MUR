@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
+//cv::Scalar yellowMin = cv::Scalar(174,114,135);
+//cv::Scalar yellowMax = cv::Scalar(255,255,255);
 //using namespace cv;
 class Camera
 {
