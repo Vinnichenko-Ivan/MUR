@@ -11,6 +11,7 @@ class Camera
                 void setupImageBinary(cv::Mat img);
                 void setupBinary(short num);
 		void setBinary(cv::Scalar lowThresholdArg, cv::Scalar highThresholdArg);	
+	 	short searchFlag(bool blur = 1, bool mode = 0, double minPerimetr = 300, short centerQuality = 40);
                 short searchSquare(bool blur = 1, int minPerimetr = 50, int rectQuality = 40);
                 bool searchRectangle(bool blur = 1, bool mode = 0, double minPerimetr = 300, short centerQuality = 40);
 		bool searchMaxContour(bool blur = 1, double minPerimetr = 50);
@@ -186,6 +187,60 @@ bool Camera::searchRectangle(bool blurArg, bool mode, double minPerimetr, short 
                     targetAngle = (int)fitEllipse.angle; 
                     maxContour.clear();
                     return 1; 
+                }
+            }
+        }    
+    }
+    contours.clear();
+    return 0;
+} 
+short Camera::searchFlag(bool blurArg, bool mode, double minPerimetr, short centerQuality)
+{
+    if(camNum == 1)    
+    	frame = mur.getCameraOneFrame();
+    else if(camNum == 2)
+        frame = mur.getCameraTwoFrame();	
+    binary(frame);
+    if(blurArg)
+    	blur();
+    erode(3);
+    cv::findContours(image.clone(), contours, CV_RETR_TREE,CV_CHAIN_APPROX_NONE, cvPoint(0,0));
+    if(contours.size()!=0)
+    {
+        if(debug)
+    	{
+            toShowDebug = image;
+            //cv::circle(toShowDebug, cvPoint((int)fitEllipse.center.x, (int)fitEllipse.center.y), (int)fitEllipse.size.width*2, cv::Scalar(255,0,0), 5, 8);
+            cv::imshow(str + "_object", toShowDebug);
+            cv::waitKey(33);
+    	}
+        cv::Moments mu;
+        for(int i = 0;i<contours.size();i++)
+        {
+            double perimetr = cv::arcLength(contours.at(i),1);
+            mu = moments( contours[i], true);
+            //std::cout<<mu.m00<<std::endl;
+            if(perimetr > minPerimetr && mu.m00 > 1000)//Игнорируем контура с периметром меньше 50
+            {
+                maxContour = contours.at(i);
+               	minPerimetr = perimetr;
+            }   
+        }
+        if(maxContour.size()>=5)
+        {
+            if(mode)
+                fitEllipse = cv::fitEllipse(maxContour); 
+            if(!mode || (mode && abs((X_Screen/2) - (int)fitEllipse.center.x) < centerQuality && abs((Y_Sreen/2) - (int)fitEllipse.center.y) < centerQuality))
+            {
+                cv::approxPolyDP(maxContour,maxContour, 8, 1);
+                if(maxContour.size() == 4)
+                {
+                    maxContour.clear();
+                    return 2; 
+                }
+                else 
+                {
+                    return 1;     
                 }
             }
         }    
