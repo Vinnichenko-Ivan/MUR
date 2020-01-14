@@ -1,4 +1,4 @@
-#include <murAPI.hpp>
+﻿#include <murAPI.hpp>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -9,23 +9,25 @@
 class Camera
 {
 	public:
-		Camera(short num);
+		Camera(short num, bool debugArg = 0);
                 void setupImageBinary(cv::Mat img);
                 void setupBinary(short num);
+                void erode(int radi);
 		void setBinary(cv::Scalar lowThresholdArg, cv::Scalar highThresholdArg);	
 	 	short searchFlag(bool blur = 1, bool mode = 0, double minPerimetr = 300, short centerQuality = 40);
                 short searchSquare(bool blur = 1, int minPerimetr = 50, int rectQuality = 40);
-                bool searchRectangle(bool blur = 1, bool mode = 0, double minPerimetr = 300, short centerQuality = 40);
+                bool searchNFigure(int num,bool blur = 1,double minArea = 50, double minPerimetr = 50, bool mode = 0, short centerQuality = 40);
 		bool searchMaxContour(bool blur = 1, double minPerimetr = 50);
 		bool searchCircle(bool blur = 1, int quality = 320);
-                void erode(int radi);
+                int xDelta();
+                int yDelta();
                 double currentArea;
-                cv::Size blurSize;
+                cv::Size blurSize = cv::Size(3,3);
 		int targetAngle = -1;
 		int targetSize = -1;
 		short X_Screen = -1;
 		short Y_Sreen = -1;
-		bool debug = 0;
+		bool debug;
 		double targetx, targety; 
                 double xSize, ySize;
 	private:
@@ -47,8 +49,9 @@ class Camera
    	 	short camNum = -1;
    	 	//double maxPerimetr;
 };	
-Camera::Camera(short num)
+Camera::Camera(short num,bool debugArg)
 {
+        debug = debugArg;
 	if(debug)
         {
 		str = "cam" + std::to_string(num);
@@ -72,7 +75,13 @@ void Camera::setupBinary(short num)
     int vMin = 0;
     int vMax = 0;
     int chMax = 255;
+    char ch;
     cv::Mat image;
+    if(num == 1)
+        image = mur.getCameraOneFrame();
+    else
+        image = mur.getCameraTwoFrame();
+    cv::imshow("Bin", image);
     cv::createTrackbar("hMin", "Bin", &hMin, chMax);
     cv::createTrackbar("hMax", "Bin", &hMax, chMax);
     cv::createTrackbar("sMin", "Bin", &sMin, chMax);
@@ -90,8 +99,19 @@ void Camera::setupBinary(short num)
         cv::Scalar upper(hMax, sMax, vMax);
         cv::inRange(image, lower, upper, image);
         cv::imshow("Bin", image);
-        cv::waitKey(10);
+        ch = cv::waitKey(10);
+        if(ch == 27)
+            break;
     }
+    cv::destroyAllWindows();
+}
+int Camera::xDelta()
+{
+    return targetx - xSize/2;
+}
+int Camera::yDelta()
+{
+    return targety-ySize/2;
 }
 void Camera::setupImageBinary(cv::Mat img)
 {
@@ -102,6 +122,7 @@ void Camera::setupImageBinary(cv::Mat img)
     int vMin = 0;
     int vMax = 0;
     int chMax = 255;
+    char ch;
     cv::Mat image;
     image = img.clone();
     cv::imshow("Bin", image);
@@ -111,8 +132,6 @@ void Camera::setupImageBinary(cv::Mat img)
     cv::createTrackbar("sMax", "Bin", &sMax, chMax);
     cv::createTrackbar("vMin", "Bin", &vMin, chMax);
     cv::createTrackbar("vMax", "Bin", &vMax, chMax);
-
-
     while (true) {
         cv::cvtColor(image, image, CV_BGR2Lab);
         cv::Scalar lower(hMin, sMin, vMin);
@@ -121,8 +140,11 @@ void Camera::setupImageBinary(cv::Mat img)
         cv::imshow("Bin", image);
         cv::waitKey(1);
         image = img.clone();
-
+        ch = cv::waitKey(10);
+        if(ch == 27)
+            break;
     }
+    cv::destroyAllWindows();
 }
 
 void Camera::erode(int radi)
@@ -133,7 +155,7 @@ void Camera::erode(int radi)
 }
 void Camera::blur()
 {
-	cv::GaussianBlur(image, image, blurSize, 0, 0);
+    cv::GaussianBlur(image, image, blurSize, 0, 0);
 }
 void Camera::setBinary(cv::Scalar lowThresholdArg, cv::Scalar highThresholdArg)
 {
@@ -146,33 +168,34 @@ void Camera::binary(cv::Mat frame)
     cv::inRange(frame, lowThreshold, highThreshold, image);
 }
 //Поиск прямоугольников mode - по умолчанию 0, усли 1 учитываются только четырехугольнике расположенные по примерному центру экрана
-bool Camera::searchRectangle(bool blurArg, bool mode, double minPerimetr, short centerQuality)
+bool Camera::searchNFigure(int num, bool blurArg, double minPerimetr, double minArea, bool mode, short centerQuality)
 {
     if(camNum == 1)    
     	frame = mur.getCameraOneFrame();
     else if(camNum == 2)
         frame = mur.getCameraTwoFrame();	
+  
     binary(frame);
     if(blurArg)
     	blur();
-    erode(4);
+    erode(2);
+      if(debug)
+    {
+        toShowDebug = image.clone();
+        cv::imshow(str + "_image", toShowDebug);
+        cv::waitKey(1);
+    }
     cv::findContours(image.clone(), contours, CV_RETR_TREE,CV_CHAIN_APPROX_NONE, cvPoint(0,0));
     if(contours.size()!=0)
     {
-        if(debug)
-    	{
-            toShowDebug = image;
-            //cv::circle(toShowDebug, cvPoint((int)fitEllipse.center.x, (int)fitEllipse.center.y), (int)fitEllipse.size.width*2, cv::Scalar(255,0,0), 5, 8);
-            cv::imshow(str + "_object", toShowDebug);
-            cv::waitKey(33);
-    	}
+       
         cv::Moments mu;
         for(int i = 0;i<contours.size();i++)
         {
             double perimetr = cv::arcLength(contours.at(i),1);
             mu = moments( contours[i], true);
             //std::cout<<mu.m00<<std::endl;
-            if(perimetr > minPerimetr && mu.m00 > 1000)//Игнорируем контура с периметром меньше 50
+            if(perimetr > minPerimetr && mu.m00 > minArea)//Игнорируем контура с периметром меньше 50
             {
                 maxContour = contours.at(i);
                	minPerimetr = perimetr;
@@ -183,10 +206,19 @@ bool Camera::searchRectangle(bool blurArg, bool mode, double minPerimetr, short 
             fitEllipse = cv::fitEllipse(maxContour); 
             if(!mode || (mode && abs((X_Screen/2) - (int)fitEllipse.center.x) < centerQuality && abs((Y_Sreen/2) - (int)fitEllipse.center.y) < centerQuality))
             {
-                cv::approxPolyDP(maxContour,maxContour, 20, 1);
-                if(maxContour.size() == 4)
+                cv::approxPolyDP(maxContour,maxContour,4, 1);
+                if(debug)
+                {
+                    toShowDebug = image.clone();
+                    cv::polylines(toShowDebug, maxContour, true, cv::Scalar(255,255,255), 1, 8);
+                    cv::imshow(str + "_object", toShowDebug);
+                    cv::waitKey(33);
+                }
+                if(maxContour.size() == num)
                 {
                     targetAngle = (int)fitEllipse.angle; 
+                    if(targetAngle>90)
+                        targetAngle -= 180;
                     maxContour.clear();
                     return 1; 
                 }

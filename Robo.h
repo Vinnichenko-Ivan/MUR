@@ -4,17 +4,14 @@
 class Robo
 {
     public:
-        Robo(float kpdepthArg = 5, float kidepthArg = 1, float kddepthArg = 0, float kpbalanceArg = 4, float kibalanceArg = 0, float kdbalanceArg = 0.03333);
+        Robo(float kpdepthArg = 2, float kidepthArg = 1, float kddepthArg = 0, float kpbalanceArg = 1, float kibalanceArg = 0, float kdbalanceArg = 0.03333);
         float getdepth();
         void setDepth(float depthToSet);
-        void balance(float yaw);
-        void powerSetDepth(float errorArg, float size);
-        void go(float yaw);
-        void powerGo(float errorArg, float size);
-        void powerBalance(float errorArg, float size);
-        void angleGo(float angle);
-        void angleBalance(float angle);
+        void powerSetDepth(int, int);
+        void go(int, int);
+        void powerGo(int, int, int);
         void stop();
+        int getAngle(int delta);
         float kpdepth;
         float kddepth;
         float kidepth;
@@ -22,12 +19,12 @@ class Robo
         float kdbalance;
         float kibalance;
         void reset();
+        float errorDepth,lastDepthError = 0,errorDepthIntegral = 0,errorBalanceIntegral = 0, errorBalance, lastBalanceError;
     private:
         float absoluteYaw = mur.getYaw();
-        float errorDepth,lastDepthError = 0,errorDepthIntegral = 0,errorBalanceIntegral = 0, errorBalance, lastBalanceError;
         float up;
         float filtre[3];
-};   
+};  
 Robo::Robo(float kpdepthArg, float kidepthArg, float kddepthArg, float kpbalanceArg, float kibalanceArg, float kdbalanceArg)
 {
     kpdepth = kpdepthArg;
@@ -51,13 +48,7 @@ void Robo::reset()
     lastDepthError = 0;
   
 }
-float Robo::getdepth()
-{
-    filtre[2]=filtre[1]; 
-    filtre[1]=filtre[0];
-    filtre[0]=mur.getInputAOne(); 
-    return (filtre[0]+filtre[1]+filtre[2])/3;
-}
+
 void Robo::setDepth(float depthToSet){
     float depth = getdepth();
     lastDepthError = errorDepth;
@@ -69,10 +60,10 @@ void Robo::setDepth(float depthToSet){
     if(errorDepthIntegral>-3000){
         errorDepthIntegral=-3000;}
 }
-void Robo::powerSetDepth(float errorArg, float size)
+void Robo::powerSetDepth(int errorArg, int size)
 {
     lastDepthError = errorDepth;
-    errorDepth = (errorArg - size/2)*(100/size);
+    errorDepth = errorArg;
     errorDepthIntegral+=errorDepth;
     mur.setPortC(errorDepth*kpdepth);//+errorDepthIntegral*kidepth
     if(errorDepthIntegral>3000){
@@ -80,95 +71,46 @@ void Robo::powerSetDepth(float errorArg, float size)
     if(errorDepthIntegral>-3000){
         errorDepthIntegral=-3000;}
 }
-void Robo::angleGo(float angle)
-{
-    lastBalanceError = errorBalance;
-    errorBalance = angle;
-    errorBalanceIntegral+=errorBalance;
-    if(abs(errorBalance)<20)
-    {
-        errorBalance *= kpbalance;
-        mur.setPortA(-90-errorBalance - (errorBalance - lastBalanceError)*kdbalance);
-        mur.setPortB(-90+errorBalance + (errorBalance - lastBalanceError)*kdbalance);
-    }
-    else
-        angleBalance(angle);
-    if(errorBalanceIntegral>3000){
-        errorBalanceIntegral=3000;}
-    if(errorBalanceIntegral>-3000){
-        errorBalanceIntegral=-3000;}
-}
-void Robo::angleBalance(float angle)
-{
-    lastBalanceError = errorBalance;
-    errorBalance = angle;
-    errorBalanceIntegral+=errorBalance;
-    errorBalance *= kpbalance;
-    mur.setPortA(-errorBalance );
-    mur.setPortB(errorBalance);
-    if(errorBalanceIntegral>3000){
-        errorBalanceIntegral=3000;}
-    if(errorBalanceIntegral>-3000){
-        errorBalanceIntegral=-3000;}
-}
-void Robo::balance(float yaw)
+
+void Robo::go(int yaw, int speed)
 {
     lastBalanceError = errorBalance;
     errorBalance = ((int)(yaw-mur.getYaw()+540)%360-180);
     errorBalanceIntegral+=errorBalance;
     errorBalance *= kpbalance;
-    mur.setPortA(-errorBalance - (errorBalance - lastBalanceError)*kdbalance);
-    mur.setPortB(errorBalance + (errorBalance - lastBalanceError)*kdbalance);
+    mur.setPortA(-speed-errorBalance);
+    mur.setPortB(-speed+errorBalance);
     if(errorBalanceIntegral>3000){
         errorBalanceIntegral=3000;}
     if(errorBalanceIntegral>-3000){
         errorBalanceIntegral=-3000;}
 }
-void Robo::go(float yaw)
+void Robo::powerGo(int errorArg, int size, int speed)
 {
     lastBalanceError = errorBalance;
-    errorBalance = ((int)(yaw-mur.getYaw()+540)%360-180);
+    errorBalance = errorArg;
     errorBalanceIntegral+=errorBalance;
-    if(abs(errorBalance)<5)
-    {
-        errorBalance *= kpbalance;
-        mur.setPortA(-90-errorBalance - (errorBalance - lastBalanceError)*kdbalance);
-        mur.setPortB(-90+errorBalance + (errorBalance - lastBalanceError)*kdbalance);
-    }
-    else
-        balance(yaw);
+    errorBalance *= kpbalance;
+    mur.setPortA(-speed-errorBalance);
+    mur.setPortB(-speed+errorBalance);
     if(errorBalanceIntegral>3000){
         errorBalanceIntegral=3000;}
     if(errorBalanceIntegral>-3000){
         errorBalanceIntegral=-3000;}
 }
-void Robo::powerGo(float errorArg, float size)
+float Robo::getdepth()
 {
-    lastBalanceError = errorBalance;
-    errorBalance = (errorArg - size/2)*(100/size);
-    errorBalanceIntegral+=errorBalance;
-    if(abs(errorBalance)<5)
-    {
-        errorBalance *= kpbalance;
-        mur.setPortA(-90-errorBalance-(errorBalance-lastBalanceError)*kdbalance);
-        mur.setPortB(-90+errorBalance+(errorBalance-lastBalanceError)*kdbalance);
-    }
-    else
-        powerBalance(errorArg, size);
-    if(errorBalanceIntegral>3000){
-        errorBalanceIntegral=3000;}
-    if(errorBalanceIntegral>-3000){
-        errorBalanceIntegral=-3000;}
+    filtre[2]=filtre[1]; 
+    filtre[1]=filtre[0];
+    filtre[0]=mur.getInputAOne(); 
+    return (filtre[0]+filtre[1]+filtre[2])/3;
 }
-void Robo::powerBalance(float errorArg, float size)
+int Robo::getAngle(int delta)
 {
-    lastBalanceError = errorBalance;
-    errorBalance = (errorArg - size/2)*(100/size);
-    errorBalanceIntegral+=errorBalance;
-    mur.setPortA(-errorBalance*kpbalance - (errorBalance - lastBalanceError)*kdbalance);//-errorBalanceIntegral*kibalance
-    mur.setPortB(errorBalance*kpbalance + (errorBalance - lastBalanceError)*kdbalance);//+errorBalanceIntegral*kibalance
-    if(errorBalanceIntegral>3000){
-        errorBalanceIntegral=3000;}
-    if(errorBalanceIntegral>-3000){
-        errorBalanceIntegral=-3000;}
+    if(mur.getYaw() + delta > 360)
+        return mur.getYaw() + delta - 360;
+    else if(mur.getYaw() + delta < 0)
+        return mur.getYaw() + delta + 360;  
+    else 
+        return mur.getYaw() + delta;
 }
