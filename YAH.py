@@ -2,6 +2,7 @@
 
 dephtG=20
 azimutT=0
+dephtN=1.5
 import cv2
 import pymurapi as mur
 auv = mur.mur_init()
@@ -120,7 +121,8 @@ def ellipseY():
             return(1000)  
     except:
         return(1000)
-
+        
+        
 def depht(depht,azimut,speed):
     kd=70
     kda=-1
@@ -132,8 +134,95 @@ def depht(depht,azimut,speed):
     azimutError=(auv.get_yaw()+540-azimut)%360-180
     auv.set_motor_power(0,speed+azimutError*kda)
     auv.set_motor_power(1,speed-azimutError*kda)
-    
+def off():
+    auv.set_motor_power(4,0) 
+    auv.set_motor_power(3,0) 
+    auv.set_motor_power(2,0) 
+    auv.set_motor_power(1,0) 
+    auv.set_motor_power(0,0)   
 sleep(1)
+
+yawZ=auv.get_yaw()
+now = time.time()
+while True:
+    depht(dephtN,yawZ,0)
+    if (time.time() - now) > 3:
+        break
+    sleep(0.05)
+
+    
+while(angleLine()==360):
+    depht(1.5,yawZ,50)
+    sleep(0.05)
+yawZ-=angleLine() 
+
+now = time.time()
+while True:
+    depht(dephtN,yawZ,0)
+    
+    if (time.time() - now) > 5:
+        break
+    sleep(0.05)
+off() 
+
+  
+while(abs(160-ellipseY())>10):
+    depht(dephtN,yawZ,0)
+    auv.set_motor_power(4,(160-ellipseY())*1.3)  
+    sleep(0.05)
+off()
+
+now = time.time()
+while abs((auv.get_yaw()+540-yawZ)%360-180)<5:
+    depht(dephtN,yawZ,0)
+    auv.set_motor_power(4,160-ellipseY())
+    if (time.time() - now) > 3:
+        break
+        sleep(0.05)
+off()
+        
+now = time.time()
+
+while True:
+    depht(dephtN,yawZ,60)
+    if (time.time() - now) > 5:
+        break
+    sleep(0.05)
+off()    
+    
+
+while(angleLine()==360):
+    depht(1.5,yawZ,50)
+    sleep(0.05)
+off()    
+    
+yawZ-=angleLine() 
+
+now = time.time()
+while True:
+    depht(dephtN,yawZ,0)
+    
+    if (time.time() - now) > 5:
+        break
+    sleep(0.05)
+off() 
+
+  
+while(abs(160-ellipseY())>10):
+    depht(dephtN,yawZ,0)
+    auv.set_motor_power(4,(160-ellipseY())*1.3)  
+    sleep(0.05)
+off()    
+
+now = time.time()
+while True:
+    depht(dephtN,yawZ,70)
+    if (time.time() - now) > 3:
+        break
+        sleep(0.05)
+off()   
+while(ellipseX()==1000):
+    depht(dephtN,yawZ,50)
 
 while(1):
     print(ellipseX());#125
@@ -141,3 +230,5 @@ while(1):
     if(ellipseX()!=1000):
         depht(1.2,0,(125-ellipseX()))
         auv.set_motor_power(4,160-ellipseY())
+    
+    
