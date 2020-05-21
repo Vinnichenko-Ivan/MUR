@@ -1,5 +1,3 @@
-
-
 dephtG=20
 azimutT=0
 dephtN=1.5
@@ -168,7 +166,7 @@ off()
   
 while(abs(160-ellipseY())>10):
     depht(dephtN,yawZ,0)
-    auv.set_motor_power(4,(160-ellipseY())*1.3)  
+    auv.set_motor_power(4,(160-ellipseY())*0.75)  
     sleep(0.05)
 off()
 
@@ -220,26 +218,29 @@ while True:
     if (time.time() - now) > 4:
         break
         sleep(0.05)
+        
 off()   
 while(ellipseX()==1000):
     depht(dephtN,yawZ,50)
+    
 off() 
 while(1):
-    print(ellipseX());#125
-    print(ellipseY())#160 
     if(ellipseX()!=1000):
-        depht(1.2,yawZ,(125-ellipseX()))
-        auv.set_motor_power(4,160-ellipseY())
-    if(abs(125-ellipseX())<5 and abs(160-ellipseY())<5):
-        auv.drop()
+        depht(dephtN,yawZ,(125-ellipseX())*0.75)
+        auv.set_motor_power(4,(160-ellipseY())*0.75)
+        
+    if(abs(125-ellipseX())>5 or abs(160-ellipseY())>5):
+        now = time.time()
+    if(abs(125-ellipseX())<5 and abs(160-ellipseY())<5 and time.time() - now>2):
+        sleep(0.05)
+        off()
+        auv.drop()  
+        sleep(1)#если сбрасываю один раз, то лагает и не сбрасывает
+        auv.drop()  
         off() 
-        sleep(1)
-        auv.drop()
-        off() 
-        sleep(1)
         break
     sleep(0.05)
     
 while(1):
-    depht(0,yawZ,0)    
-
+    depht(0,yawZ,0)  
+    sleep(0.05)
