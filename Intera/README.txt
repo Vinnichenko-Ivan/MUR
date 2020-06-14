@@ -1,1 +1,1 @@
-Here we put codes on Intera competiton.
+Here we put codes on Intera competition.
