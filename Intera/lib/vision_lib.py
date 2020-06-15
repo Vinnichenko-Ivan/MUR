@@ -6,14 +6,19 @@ import math
 import pymurapi as mur
 
 class Vision:
-    def __init__(self):
-        self.img = np.array()
-        self.mask = np.array()
-        self.box = cv2.boxPoints()
+    def __init__(self, view):
+        if view != "Front" or view != "Front":
+            raise ValueError("Wrong camera view.")
+        self.img = np.array([])
+        self.mask = np.array([])
+        self.original = np.array([])
+        self.box
         self.colors = {}
+        self.view = view
+    def get_frame(self):
+        if()
     def binary(self, num):
-        original = auv.get_image_bottom()
-        self.img = np.copy(original)
+        self.img = np.copy(self.original)
         self.img = cv2.cvtColor(self.img, cv2.COLOR_BGR2HSV)
         self.mask = cv2.inRange(self.img, self.colors[num][0], self.colors[num][1])
     def __find_by_area(self, contours, edges = -1):
