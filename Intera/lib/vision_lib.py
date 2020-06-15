@@ -13,17 +13,17 @@ class Vision:
         self.mask = np.array([])
         self.original = np.array([])
         self.box
-        self.colors = {}
         self.view = view
     def get_frame(self):
         if self.view is "Front":
             self.original = auv.get_image_bottom()
         else:
             self.original = auv.get_image_front()
-    def binary(self, num):
-        self.img = np.copy(self.original)
+    def cut_frame(self, x, y):
+        return self.original[y[0]:y[1], x[0]:x[1]]
+    def binary(self, color):
         self.img = cv2.cvtColor(self.img, cv2.COLOR_BGR2HSV)
-        self.mask = cv2.inRange(self.img, self.colors[num][0], self.colors[num][1])
+        self.mask = cv2.inRange(self.img, color[0], color[1])
     def __find_by_area(self, contours, edges = -1):
         max_area = 0
         max_contour = []
