@@ -12,7 +12,7 @@ class Vision:
         self.img = np.array([])
         self.mask = np.array([])
         self.original = np.array([])
-        self.box
+        self.box = None
         self.view = view
     def get_frame(self):
         if self.view is "Front":
