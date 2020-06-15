@@ -1,6 +1,6 @@
 dephtG=20
 azimutT=0
-dephtN=0.5
+dephtN=2
 import cv2
 import pymurapi as mur
 auv = mur.mur_init()
@@ -35,7 +35,7 @@ def angleLine():
                     max_area = cv2.contourArea(cont)
             if(counter_max.shape[0]>0 and cv2.contourArea(counter_max)>500):
                 rect = cv2.minAreaRect(counter_max)  
-                box = cv2.boxPoints(rect) 
+                box = cv2.boxPoints(rect)
                 box = np.int0(box)  
                 center = (int(rect[0][0]), int(rect[0][1]))
                 area = int(rect[1][0] * rect[1][1])  
@@ -53,7 +53,7 @@ def angleLine():
             return(360)  
     except:
         return(360)
-        
+       
 def ellipseX():
     try:
         low = np.array([0,0,0])
@@ -79,14 +79,14 @@ def ellipseX():
                 if cv2.contourArea(cont)>max_area:
                     counter_max=cont
                     max_area = cv2.contourArea(cont)
-            rect = cv2.minAreaRect(counter_max) 
+            rect = cv2.minAreaRect(counter_max)
             center = rect[0]
             return center[1]
         else:
             return(1000)  
     except:
         return(1000)
-        
+       
 def ellipseY():
     try:
         low = np.array([0,0,0])
@@ -96,12 +96,12 @@ def ellipseY():
         orig = auv.get_image_bottom()
         img = np.copy(orig)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        high[0] = 89
-        high[1] = 255
+        high[0] = 16
+        high[1] = 247
         high[2] = 255
         low[0] = 0
-        low[1] = 38
-        low[2] = 42
+        low[1] = 157
+        low[2] = 184
         mask = cv2.inRange(img, low, high)
         angle=0
         k = cv2.waitKey(1)
@@ -112,35 +112,45 @@ def ellipseY():
                 if cv2.contourArea(cont)>max_area:
                     counter_max=cont
                     max_area = cv2.contourArea(cont)
-            rect = cv2.minAreaRect(counter_max) 
+            rect = cv2.minAreaRect(counter_max)
             center = rect[0]
             return center[0]
         else:
             return(1000)  
     except:
         return(1000)
-        
+       
         #89 0 255 38 255 42
 def depht(depht,azimut,speed):
     kd=70
     kda=-1
     #rightMotor.setPower(((realAzimut+540-global.azimutT)%360-180) *global.kd);
-	 #leftMotor.setPower(((realAzimut+540-global.azimutT)%360-180)*global.kd);
+     #leftMotor.setPower(((realAzimut+540-global.azimutT)%360-180)*global.kd);
     error=auv.get_depth()-depht
     auv.set_motor_power(2,error*kd)
     auv.set_motor_power(3,error*kd)
     azimutError=(auv.get_yaw()+540-azimut)%360-180
     auv.set_motor_power(0,speed+azimutError*kda)
     auv.set_motor_power(1,speed-azimutError*kda)
+    
+def yawRun(azimut,speed):
+    if(speed>100):
+        speed=100
+    if(speed<-100):
+        speed=-100    
+    azimutError=(auv.get_yaw()+540-azimut)%360-180
+    auv.set_motor_power(0,speed+azimutError*kda)
+    auv.set_motor_power(1,speed-azimutError*kda)
+    
 def off():
-    auv.set_motor_power(4,0) 
-    auv.set_motor_power(3,0) 
-    auv.set_motor_power(2,0) 
-    auv.set_motor_power(1,0) 
-    auv.set_motor_power(0,0) 
-  
+    auv.set_motor_power(4,0)
+    auv.set_motor_power(3,0)
+    auv.set_motor_power(2,0)
+    auv.set_motor_power(1,0)
+    auv.set_motor_power(0,0)
+ 
 sleep(1)
-
+ 
 def figure():
     try:
         low = np.array([0,0,0])
@@ -165,104 +175,218 @@ def figure():
             for cont in contours:
                 if cv2.contourArea(cont)>max_area:
                     counter_max=cont
-                    max_area = cv2.contourArea(cont) 
+                    max_area = cv2.contourArea(cont)
             approx = cv2.approxPolyDP(counter_max,0.01*cv2.arcLength(counter_max,True),True)
-
+ 
             if len(approx)==5:
-                return 1000 
-          
+                return 1000
+         
             elif len(approx)==3:
                  return 3
-                
+               
             elif len(approx)==4:
                  return 4
                
-            elif len(approx) == 9:
+            elif len(approx)> 7:
                  return 10
-                
+               
             elif len(approx) > 15:
                  return 10
                  
         else:
-            return(1000)  
+            return(1001)  
+        return(len(approx))
     except:
         return(1000)
-        
-        
-    
+       
+       
+   
 def goToP(a):
     yawZ=auv.get_yaw()
     now = time.time()
     angle1, distance1 = auv.get_pinger_data(a)
+    angle1+=yawZ;
     while True:
         depht(dephtN,angle1,0)
         if (time.time() - now) > 5:
             break
         sleep(0.05)
-        
-    
-    while(distance1>5):
+       
+   
+    while(distance1>2.5):
         angle2, distance1 = auv.get_pinger_data(a)
-        depht(dephtN,angle1,50)
+        depht(dephtN,angle1,75)
         sleep(0.05)
-        
+       
     while(ellipseX()==1000):
         depht(dephtN,angle1,50)
         sleep(0.05)
-        
-    off() 
+       
+    off()
     while(1):
         if(ellipseX()!=1000):
             depht(dephtN,angle1,(125-ellipseX())*0.75)
             auv.set_motor_power(4,(160-ellipseY())*0.75)
-            
-        if(abs(125-ellipseX())>5 or abs(160-ellipseY())>5):
+        else:
+            off()    
+        if(abs(125-ellipseX())>10 or abs(160-ellipseY())>5):
             now = time.time()
-        if(abs(125-ellipseX())<5 and abs(160-ellipseY())<5 and time.time() - now>2):
+        if(abs(125-ellipseX())<10 and abs(160-ellipseY())<5 and time.time() - now>2):
             sleep(0.05)
             off()
             #auv.drop()  
             #sleep(1)#если сбрасываю один раз, то лагает и не сбрасывает
            #auv.drop()  
-            off() 
+            off()
             return
             break
             sleep(0.05)
-top=0
-goToP(0)
-a=figure()
-if(a==10):
-    auv.drop()  
-    sleep(1)#если сбрасываю один раз, то лагает и не сбрасывает
-    auv.drop() 
-elif(a==3):
-    top=0
+def target(color,yawZ):
+    nowTime=time.time()
+    while(1):
+        sleep(0.05)
+        try:
+            low = np.array([0,0,0])
+            high = np.array([0,0,0])
+            if(color=="white"):
+                high[0] = 255
+                high[1] = 8
+                high[2] = 255
+                low[0] = 0
+                low[1] = 0
+                low[2] = 102      
+            elif(color=="black"):
+                high[0] = 255
+                high[1] = 255
+                high[2] = 48
+                low[0] = 0
+                low[1] = 0
+                low[2] = 0
+            elif(color=="green"):
+                high[0] = 97
+                high[1] = 255
+                high[2] = 255
+                low[0] = 50
+                low[1] = 102
+                low[2] = 132
+            elif(color=="blue"):
+                high[0] = 150
+                high[1] = 242
+                high[2] = 255
+                low[0] = 124
+                low[1] = 157
+                low[2] = 184
+            elif(color=="orange"):
+                high[0] = 16
+                high[1] = 247
+                high[2] = 255
+                low[0] = 0
+                low[1] = 157
+                low[2] = 184
+            elif(color=="yellow"):
+                high[0] = 66
+                high[1] = 249
+                high[2] = 255
+                low[0] = 23
+                low[1] = 138
+                low[2] = 164
+            counter_max = np.array([[]], dtype = np.int32)
+            max_area = 0
+            orig = auv.get_image_front()
+            img = np.copy(orig)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+            mask = cv2.inRange(img, low, high)
+            angle=0
+            k = cv2.waitKey(1)
+            contours, hierarchy = cv2.findContours(mask, 1, 2)
+            if(len(contours)>0):
+                max_area=0
+                for cont in contours:
+                    if cv2.contourArea(cont)>max_area:
+                        counter_max=cont
+                        max_area = cv2.contourArea(cont)
+                rect = cv2.minAreaRect(counter_max)
+                center = rect[0]
+                xTarget= center[1]
+                yTarget= center[0]
+                area=cv2.contourArea(counter_max)
+                print(area)
+                print(xTarget)
+                print(yTarget)
+                auv.set_motor_power(4,(160-yTarget))
+                error=142.5-xTarget
+                kd=0.75
+                auv.set_motor_power(2,error*kd)
+                auv.set_motor_power(3,error*kd)
+                kda=-1
+                azimutError=(auv.get_yaw()+540-yawZ)%360-180
+                speed=(25000-area)*0.01
+                if(speed>65):
+                    speed=65
+                if(speed<-65):
+                    speed=-65                 
+                auv.set_motor_power(0,speed+azimutError*kda)
+                auv.set_motor_power(1,speed-azimutError*kda)
+                if((abs(25000-area)<750 and abs(142.5-xTarget)<2.5 and abs(160-yTarget)<2.5)==False):
+                    nowTime=time.time()
+                if(time.time()-nowTime>0.5):
+                    auv.shoot()
+                    sleep(1)
+                    return;
+                #depht(1.2,0,(125-ellipseX()))
+        except:
+            return
+sleep(1)
 
-goToP(1)
-a=figure()
-if(a==10):
-    auv.drop()  
-    sleep(1)#если сбрасываю один раз, то лагает и не сбрасывает
-    auv.drop() 
-elif(a==3):
-    top=1
+yawZ=auv.get_yaw()
+now = time.time()
+while True:
+    depht(2.5,yawZ,0)
+    if (time.time() - now) > 3:
+        break
+    sleep(0.05)
     
-goToP(2)
-a=figure()
-if(a==10):
-    auv.drop()  
-    sleep(1)#если сбрасываю один раз, то лагает и не сбрасывает
-    auv.drop() 
-elif(a==3):
-    top=2
+flag=0;
+cordEnemy=360
+if(cordEnemy>180):
+    flag=1;
+mass=list(["","",""])
+
+mass[0]="yellow"
+mass[1]="green"
+mass[2]="black"
+target(mass[0],yawZ) 
+target(mass[1],yawZ)
+target(mass[2],yawZ)
+
+off()
+
     
-goToP(3)
-a=figure()
-if(a==10):
-    auv.drop()  
-    sleep(1)#если сбрасываю один раз, то лагает и не сбрасывает
-    auv.drop() 
-elif(a==3):
-    top=3
- 
-goToP(top) 
+now = time.time()
+while True:
+    if(flag==0):
+        auv.set_motor_power(4,100)
+    if(flag==1):
+        auv.set_motor_power(4,-100)
+    depht(2.7,yawZ,0)
+    if (time.time() - now) > 3:
+        break
+    sleep(0.05)
+    
+while (ellipseY()!=1000):
+    depht(2.7,yawZ,0)
+    if(flag==0):
+        auv.set_motor_power(4,100)
+    if(flag==1):
+        auv.set_motor_power(4,-100)
+off()
+now = time.time()
+while True:
+    auv.set_motor_power(4,(160-ellipseY()))
+    if (time.time() - now) > 5:
+        break
+    sleep(0.05)
+
+while True:
+    depht(0,yawZ,0)
+
