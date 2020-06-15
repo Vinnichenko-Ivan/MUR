@@ -9,6 +9,7 @@ class Vision:
     def __init__(self, view):
         if view != "Bottom" and view != "Front":
             raise ValueError("Wrong camera view.")
+        self.auv = mur.mur_init()
         self.img = np.array([])
         self.mask = np.array([])
         self.original = np.array([])
@@ -16,9 +17,9 @@ class Vision:
         self.view = view
     def get_frame(self):
         if self.view is "Front":
-            self.original = auv.get_image_bottom()
+            self.original = self.auv.get_image_bottom()
         else:
-            self.original = auv.get_image_front()
+            self.original = self.auv.get_image_front()
     def cut_frame(self, x, y):
         return self.original[y[0]:y[1], x[0]:x[1]]
     def binary(self, color):
