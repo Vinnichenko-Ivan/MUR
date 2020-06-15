@@ -7,7 +7,7 @@ import pymurapi as mur
 
 class Vision:
     def __init__(self, view):
-        if view != "Front" or view != "Front":
+        if view != "Bottom" or view != "Front":
             raise ValueError("Wrong camera view.")
         self.img = np.array([])
         self.mask = np.array([])
@@ -16,7 +16,10 @@ class Vision:
         self.colors = {}
         self.view = view
     def get_frame(self):
-        if()
+        if self.view is "Front":
+            self.original = auv.get_image_bottom()
+        else:
+            self.original = auv.get_image_front()
     def binary(self, num):
         self.img = np.copy(self.original)
         self.img = cv2.cvtColor(self.img, cv2.COLOR_BGR2HSV)
