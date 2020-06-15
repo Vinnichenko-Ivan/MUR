@@ -29,7 +29,7 @@ class Vision:
         max_area = 0
         max_contour = []
         for contour in contours:
-            if cv2.contourArea(contour) > max_area and cv2.contourArea(max_contour) > 100:
+            if cv2.contourArea(contour) > max_area and cv2.contourArea(contour) > 100:
                 cv2.approxPolyDP(contour, 5, False)
                 if contour.shape[0] is edges or edges is -1:
                     max_contour = contour
