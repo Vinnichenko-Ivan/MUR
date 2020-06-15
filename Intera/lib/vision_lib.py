@@ -34,7 +34,7 @@ class Vision:
                 if contour.shape[0] is edges or edges is -1:
                     max_contour = contour
                     max_area = cv2.contourArea(max_contour)
-        if max_contour.shape[0] > 0:
+        if len(max_contour) > 0:
             return max_contour
         else:
             return -1
