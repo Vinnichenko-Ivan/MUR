@@ -7,7 +7,7 @@ import pymurapi as mur
 
 class Vision:
     def __init__(self, view):
-        if view != "Bottom" or view != "Front":
+        if view != "Bottom" and view != "Front":
             raise ValueError("Wrong camera view.")
         self.img = np.array([])
         self.mask = np.array([])
